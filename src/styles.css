@@ -358,6 +358,79 @@ main {
   gap: 12px;
   margin-bottom: 18px;
 }
+.planner-panel {
+  margin: 16px 0 22px;
+  padding: 18px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: linear-gradient(180deg, #fbfdfb 0%, #ffffff 100%);
+}
+.planner-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.planner-head h3 {
+  margin-bottom: 5px;
+  font-size: 21px;
+}
+.planner-head p:last-child {
+  margin-bottom: 0;
+  color: var(--muted);
+}
+.profile-form {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(120px, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+.metric-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+.macro-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+.macro-grid article {
+  display: grid;
+  gap: 5px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+.macro-grid b {
+  color: var(--accent-strong);
+}
+.macro-grid strong {
+  font-size: 24px;
+  color: var(--orange);
+}
+.macro-grid span {
+  color: var(--muted);
+  font-size: 13px;
+}
+.advice-box {
+  margin-top: 14px;
+  padding: 14px;
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  background: var(--accent-soft);
+}
+.advice-box b {
+  color: var(--accent-strong);
+}
+.advice-box p {
+  margin: 6px 0 0;
+  color: var(--ink);
+}
 .info-tile,
 .food-card,
 .qa-item,
@@ -694,8 +767,14 @@ tr:hover td {
   .nav-list,
   .lesson-grid,
   .metric-grid,
-  .rail-stats {
+  .rail-stats,
+  .metric-strip,
+  .macro-grid,
+  .profile-form {
     grid-template-columns: 1fr;
+  }
+  .planner-head {
+    display: grid;
   }
   .hero-panel,
   .panel,

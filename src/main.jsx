@@ -231,6 +231,8 @@ function DietCourse({ goal, query }) {
           <section className="panel">
             <PanelTitle title={selected.title} subtitle={selected.summary || '原表没有额外摘要，建议直接查看餐次和原表行。'} />
             <SourcePills refs={selected.sourceRefs} />
+            <GoalInputPlanner goal={goal} plan={selected} />
+            <PanelTitle title="原表输入说明" subtitle="下面保留 Excel 中对输入项、调整规则和执行注意事项的原始说明。" />
             <div className="info-grid">
               {selected.inputs.map((item, index) => (
                 <article className="info-tile" key={`${item.label}-${index}`}>
@@ -257,6 +259,164 @@ function DietCourse({ goal, query }) {
       <ModuleRail moduleId={goal} activeRefs={selected?.sourceRefs} />
     </div>
   );
+}
+
+const activityOptions = [
+  { value: 1.2, label: '久坐少动', detail: '几乎不运动' },
+  { value: 1.375, label: '轻度活动', detail: '每周 1-3 练' },
+  { value: 1.55, label: '中等活动', detail: '每周 3-5 练' },
+  { value: 1.725, label: '高活动量', detail: '每周 5-6 练' },
+];
+
+const speedOptions = {
+  'fat-loss': [
+    { value: 300, label: '稳妥减脂', detail: '每日约 -300 kcal' },
+    { value: 500, label: '标准减脂', detail: '每日约 -500 kcal' },
+    { value: 700, label: '较快减脂', detail: '每日约 -700 kcal' },
+  ],
+  'muscle-gain': [
+    { value: 150, label: '干净增肌', detail: '每日约 +150 kcal' },
+    { value: 250, label: '标准增肌', detail: '每日约 +250 kcal' },
+    { value: 350, label: '偏快增肌', detail: '每日约 +350 kcal' },
+  ],
+};
+
+const defaultProfiles = {
+  'fat-loss': { sex: 'male', height: '175', weight: '75', age: '28', activity: '1.55', delta: '500' },
+  'muscle-gain': { sex: 'male', height: '175', weight: '65', age: '28', activity: '1.55', delta: '250' },
+};
+
+function GoalInputPlanner({ goal, plan }) {
+  const storageKey = `fitknow-${goal}-profile`;
+  const [profile, setProfile] = useState(() => {
+    try {
+      return { ...defaultProfiles[goal], ...JSON.parse(localStorage.getItem(storageKey) || '{}') };
+    } catch {
+      return defaultProfiles[goal];
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem(storageKey, JSON.stringify(profile));
+  }, [profile, storageKey]);
+
+  const update = (field) => (event) => setProfile((current) => ({ ...current, [field]: event.target.value }));
+  const metrics = useMemo(() => computeNutrition(goal, profile), [goal, profile]);
+  const isFatLoss = goal === 'fat-loss';
+
+  return (
+    <div className="planner-panel">
+      <div className="planner-head">
+        <div>
+          <p className="section-label">自己输入</p>
+          <h3>{isFatLoss ? '减脂目标计算器' : '增肌目标计算器'}</h3>
+          <p>{isFatLoss ? '根据身体数据估算维持热量，再给出减脂期目标热量和宏量营养素。' : '根据身体数据估算维持热量，再给出增肌期盈余热量和宏量营养素。'}</p>
+        </div>
+        <SourcePills refs={plan.sourceRefs} />
+      </div>
+
+      <div className="profile-form">
+        <Field label="性别">
+          <select value={profile.sex} onChange={update('sex')}>
+            <option value="male">男</option>
+            <option value="female">女</option>
+          </select>
+        </Field>
+        <Field label="身高 cm"><input inputMode="decimal" value={profile.height} onChange={update('height')} /></Field>
+        <Field label="体重 kg"><input inputMode="decimal" value={profile.weight} onChange={update('weight')} /></Field>
+        <Field label="年龄"><input inputMode="numeric" value={profile.age} onChange={update('age')} /></Field>
+        <Field label="活动水平">
+          <select value={profile.activity} onChange={update('activity')}>
+            {activityOptions.map((item) => <option value={item.value} key={item.value}>{item.label} · {item.detail}</option>)}
+          </select>
+        </Field>
+        <Field label={isFatLoss ? '减脂速度' : '增肌速度'}>
+          <select value={profile.delta} onChange={update('delta')}>
+            {speedOptions[goal].map((item) => <option value={item.value} key={item.value}>{item.label} · {item.detail}</option>)}
+          </select>
+        </Field>
+      </div>
+
+      <div className="metric-strip">
+        <Stat value={metrics.bmiText} label={`BMI · ${metrics.bmiLabel}`} />
+        <Stat value={`${metrics.bmr} kcal`} label="基础代谢估算" />
+        <Stat value={`${metrics.tdee} kcal`} label="维持热量估算" />
+        <Stat value={`${metrics.targetCalories} kcal`} label={isFatLoss ? '减脂目标热量' : '增肌目标热量'} />
+      </div>
+
+      <div className="macro-grid">
+        <article>
+          <b>蛋白质</b>
+          <strong>{metrics.protein} g/天</strong>
+          <span>{isFatLoss ? '优先保肌，建议分配到每餐。' : '支持训练恢复和肌肉合成。'}</span>
+        </article>
+        <article>
+          <b>脂肪</b>
+          <strong>{metrics.fat} g/天</strong>
+          <span>不要长期压得过低，优先保证基础摄入。</span>
+        </article>
+        <article>
+          <b>碳水</b>
+          <strong>{metrics.carbs} g/天</strong>
+          <span>{isFatLoss ? '优先放在训练前后和主餐。' : '训练日前后可适当集中。'}</span>
+        </article>
+      </div>
+
+      <div className="advice-box">
+        <b>{isFatLoss ? '执行建议' : '增肌建议'}</b>
+        <p>{metrics.advice}</p>
+        <p>{metrics.targetWeightText}</p>
+      </div>
+    </div>
+  );
+}
+
+function computeNutrition(goal, profile) {
+  const sex = profile.sex === 'female' ? 'female' : 'male';
+  const height = clampNumber(profile.height, 120, 230, 175);
+  const weight = clampNumber(profile.weight, 35, 180, 70);
+  const age = clampNumber(profile.age, 12, 80, 28);
+  const activity = clampNumber(profile.activity, 1.2, 1.9, 1.55);
+  const delta = clampNumber(profile.delta, 100, 900, goal === 'fat-loss' ? 500 : 250);
+  const heightM = height / 100;
+  const bmi = weight / (heightM * heightM);
+  const bmr = Math.round(10 * weight + 6.25 * height - 5 * age + (sex === 'male' ? 5 : -161));
+  const tdee = Math.round(bmr * activity);
+  const minimumCalories = sex === 'male' ? 1500 : 1200;
+  const rawTarget = goal === 'fat-loss' ? tdee - delta : tdee + delta;
+  const targetCalories = Math.max(Math.round(rawTarget), minimumCalories);
+  const proteinRate = goal === 'fat-loss' ? 1.8 : 1.7;
+  const fatRate = goal === 'fat-loss' ? 0.75 : 0.9;
+  const protein = Math.round(weight * proteinRate);
+  const fat = Math.round(weight * fatRate);
+  const carbs = Math.max(0, Math.round((targetCalories - protein * 4 - fat * 9) / 4));
+  const bmiLabel = bmi < 18.5 ? '偏低' : bmi < 24 ? '正常' : bmi < 28 ? '超重' : '肥胖';
+  const targetWeight = Math.round((goal === 'fat-loss' ? 22 : 23) * heightM * heightM);
+  const advice = goal === 'fat-loss'
+    ? `先按 ${targetCalories} kcal 执行 2 周，观察 7 日平均体重。若两周几乎不动，再减少 100-150 kcal 或增加有氧。`
+    : `先按 ${targetCalories} kcal 执行 2-3 周，观察训练表现和腰围。若体重不上升，再增加 100-150 kcal。`;
+  const targetWeightText = goal === 'fat-loss'
+    ? `以 BMI 约 22 估算，阶段目标体重可先看 ${targetWeight} kg 附近，不必一次追到极低体重。`
+    : `以 BMI 约 23 估算，长期体重上限可先参考 ${targetWeight} kg 附近，优先保证围度和力量质量。`;
+
+  return {
+    bmiText: Number.isFinite(bmi) ? bmi.toFixed(1) : '-',
+    bmiLabel,
+    bmr,
+    tdee,
+    targetCalories,
+    protein,
+    fat,
+    carbs,
+    advice,
+    targetWeightText,
+  };
+}
+
+function clampNumber(value, min, max, fallback) {
+  const number = Number.parseFloat(value);
+  if (!Number.isFinite(number)) return fallback;
+  return Math.min(max, Math.max(min, number));
 }
 
 function TrainingCourse({ query }) {
