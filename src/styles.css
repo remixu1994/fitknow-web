@@ -986,3 +986,23 @@ main > * {
 .not-found h2 { font-size: 64px; color: var(--muted); }
 .not-found p { color: var(--muted); font-size: 18px; margin-bottom: 24px; }
 .not-found a { display: inline-block; padding: 12px 24px; border-radius: 8px; background: var(--accent); color: #fff; font-weight: 700; text-decoration: none; }
+
+/* 餐次分配 */
+.meal-planner { margin-top: 18px; }
+.day-toggle { display: flex; gap: 6px; }
+.day-toggle button { min-height: 38px; border: 1px solid var(--line); border-radius: 8px; background: #fbfcfa; padding: 9px 16px; color: var(--accent-strong); cursor: pointer; font-weight: 700; }
+.day-toggle button.selected { background: var(--accent); border-color: var(--accent); color: #fff; }
+.macro-summary { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; margin: 12px 0; padding: 12px 14px; border-radius: 8px; background: var(--accent-soft); }
+.macro-summary span { color: var(--ink); font-size: 14px; }
+.macro-summary b { color: var(--accent-strong); font-size: 16px; margin-left: 2px; }
+.macro-summary small { color: var(--muted); font-size: 12px; width: 100%; }
+.meal-table { display: grid; gap: 1px; background: var(--line); border-radius: 8px; overflow: hidden; margin-top: 12px; }
+.meal-header, .meal-row { display: grid; grid-template-columns: 120px 1fr 1fr 1fr; gap: 4px; padding: 10px 14px; font-size: 14px; }
+.meal-header { background: var(--table-header-bg); font-weight: 700; font-size: 12px; color: var(--table-header-text); }
+.meal-row { background: var(--paper); }
+.meal-row b { color: var(--ink); font-size: 14px; }
+.meal-row b small { color: var(--muted); font-weight: 400; font-size: 12px; }
+.meal-row span { color: var(--ink); font-size: 14px; }
+.meal-row span small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+.meal-row:hover { background: var(--table-hover-bg); }
+@media (max-width: 640px) { .meal-header, .meal-row { grid-template-columns: 80px 1fr 1fr 1fr; font-size: 12px; padding: 8px 10px; } }
