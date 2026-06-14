@@ -16,6 +16,61 @@ const routes = [
   { id: 'source', hash: '#/source', label: '原表索引', mark: '09' },
 ];
 
+// 好人松松 碳水/蛋白质/脂肪 比例表（g/kg体重）
+// 格式：{weight: {height: [carbs, protein, fat]}}
+const maleFatLossRatios = {
+  60: {160: [2.6, 2.0, 1.4]},
+  65: {160: [2.6, 1.9, 1.4], 165: [2.6, 2.0, 1.4]},
+  70: {160: [2.5, 1.9, 1.3], 165: [2.5, 2.0, 1.4], 170: [2.6, 2.0, 1.4], 175: [2.7, 2.1, 1.4]},
+  75: {160: [2.4, 1.9, 1.3], 165: [2.5, 1.9, 1.3], 170: [2.5, 2.0, 1.4], 175: [2.6, 2.1, 1.4], 180: [2.7, 2.1, 1.4]},
+  80: {160: [2.4, 1.9, 1.3], 165: [2.4, 1.9, 1.3], 170: [2.5, 2.0, 1.3], 175: [2.5, 2.0, 1.4], 180: [2.6, 2.1, 1.4], 185: [2.6, 2.1, 1.4]},
+  85: {160: [2.3, 1.8, 1.2], 165: [2.4, 1.9, 1.3], 170: [2.4, 1.9, 1.3], 175: [2.5, 2.0, 1.3], 180: [2.5, 2.0, 1.4], 185: [2.6, 2.1, 1.4], 190: [2.6, 2.2, 1.4]},
+  90: {160: [2.3, 1.8, 1.2], 165: [2.3, 1.9, 1.2], 170: [2.4, 1.9, 1.3], 175: [2.4, 2.0, 1.3], 180: [2.5, 2.0, 1.3], 185: [2.5, 2.1, 1.4], 190: [2.6, 2.1, 1.4]},
+  95: {160: [2.2, 1.8, 1.2], 165: [2.3, 1.8, 1.2], 170: [2.3, 1.9, 1.2], 175: [2.4, 1.9, 1.3], 180: [2.4, 2.0, 1.3], 185: [2.5, 2.0, 1.3], 190: [2.5, 2.1, 1.3]},
+  100: {160: [2.2, 1.8, 1.2], 165: [2.2, 1.8, 1.2], 170: [2.3, 1.9, 1.2], 175: [2.3, 1.9, 1.2], 180: [2.4, 2.0, 1.3], 185: [2.4, 2.0, 1.3], 190: [2.5, 2.1, 1.3]},
+  105: {160: [2.1, 1.8, 1.2], 165: [2.2, 1.8, 1.2], 170: [2.2, 1.9, 1.2], 175: [2.3, 1.9, 1.2], 180: [2.3, 1.9, 1.2], 185: [2.4, 2.0, 1.3], 190: [2.4, 2.0, 1.3]},
+  110: {160: [2.1, 1.8, 1.1], 165: [2.2, 1.8, 1.2], 170: [2.2, 1.8, 1.2], 175: [2.2, 1.9, 1.2], 180: [2.3, 1.9, 1.2], 185: [2.3, 2.0, 1.3], 190: [2.4, 2.0, 1.3]},
+  115: {160: [2.1, 1.7, 1.1], 165: [2.1, 1.8, 1.1], 170: [2.2, 1.8, 1.2], 175: [2.2, 1.9, 1.2], 180: [2.2, 1.9, 1.2], 185: [2.3, 1.9, 1.2], 190: [2.3, 2.0, 1.3]},
+  120: {160: [1.9, 1.6, 1.0], 165: [2.0, 1.6, 1.1], 170: [2.0, 1.7, 1.1], 175: [2.1, 1.7, 1.1], 180: [2.1, 1.8, 1.1], 185: [2.1, 1.8, 1.1], 190: [2.2, 1.8, 1.2]},
+  125: {160: [1.9, 1.6, 1.0], 165: [1.9, 1.6, 1.1], 170: [2.0, 1.7, 1.1], 175: [2.0, 1.7, 1.1], 180: [2.1, 1.7, 1.1], 185: [2.1, 1.8, 1.1], 190: [2.1, 1.8, 1.2]},
+  130: {160: [1.9, 1.6, 1.0], 165: [1.9, 1.6, 1.0], 170: [2.0, 1.7, 1.1], 175: [2.0, 1.7, 1.1], 180: [2.0, 1.7, 1.1], 185: [2.1, 1.8, 1.1], 190: [2.1, 1.8, 1.1]},
+};
+
+const maleMuscleGainRatios = {
+  50: {160: [4.0, 3.0, 1.7], 165: [4.1, 3.1, 1.8], 170: [4.3, 3.2, 1.8], 175: [4.4, 3.4, 1.9], 180: [4.5, 3.5, 1.9], 185: [4.7, 3.6, 2.0], 190: [4.8, 3.8, 2.1]},
+  55: {160: [3.8, 2.9, 1.6], 165: [4.0, 3.0, 1.7], 170: [4.1, 3.1, 1.7], 175: [4.2, 3.2, 1.8], 180: [4.3, 3.4, 1.9], 185: [4.4, 3.5, 1.9], 190: [4.6, 3.6, 2.0]},
+  60: {160: [3.7, 2.8, 1.6], 165: [3.8, 2.9, 1.6], 170: [3.9, 3.0, 1.7], 175: [4.0, 3.2, 1.7], 180: [4.1, 3.3, 1.8], 185: [4.2, 3.4, 1.8], 190: [4.4, 3.5, 1.9]},
+  65: {160: [3.6, 2.8, 1.5], 165: [3.7, 2.9, 1.6], 170: [3.8, 3.0, 1.6], 175: [3.9, 3.1, 1.7], 180: [4.0, 3.2, 1.7], 185: [4.1, 3.3, 1.7], 190: [4.2, 3.4, 1.8]},
+  70: {160: [3.5, 2.7, 1.5], 165: [3.6, 2.8, 1.5], 170: [3.7, 2.9, 1.6], 175: [3.8, 3.0, 1.6], 180: [3.8, 3.1, 1.6], 185: [3.9, 3.2, 1.7], 190: [4.0, 3.3, 1.8]},
+  75: {160: [3.5, 2.7, 1.5], 165: [3.5, 2.7, 1.5], 170: [3.6, 2.8, 1.5], 175: [3.7, 2.9, 1.6], 180: [3.8, 3.0, 1.6], 185: [3.8, 3.1, 1.6], 190: [3.9, 3.2, 1.7]},
+  80: {160: [3.4, 2.6, 1.4], 165: [3.5, 2.7, 1.5], 170: [3.5, 2.7, 1.5], 175: [3.6, 2.8, 1.5], 180: [3.7, 2.9, 1.6], 185: [3.7, 3.0, 1.6], 190: [3.8, 3.1, 1.6]},
+  85: {160: [3.4, 2.6, 1.4], 165: [3.4, 2.6, 1.4], 170: [3.5, 2.7, 1.4], 175: [3.5, 2.7, 1.5], 180: [3.6, 2.8, 1.5], 185: [3.6, 2.9, 1.5], 190: [3.7, 3.0, 1.6]},
+  90: {160: [3.3, 2.5, 1.4], 165: [3.3, 2.5, 1.4], 170: [3.4, 2.6, 1.4], 175: [3.4, 2.6, 1.4], 180: [3.5, 2.7, 1.5], 185: [3.5, 2.8, 1.5], 190: [3.6, 2.9, 1.5]},
+  95: {160: [3.2, 2.5, 1.3], 165: [3.3, 2.5, 1.3], 170: [3.3, 2.5, 1.4], 175: [3.4, 2.6, 1.4], 180: [3.4, 2.7, 1.4], 185: [3.5, 2.7, 1.5], 190: [3.5, 2.8, 1.5]},
+};
+
+function lookupRatio(ratioTable, weight, height) {
+  const weights = Object.keys(ratioTable).map(Number).sort((a, b) => a - b);
+  let bestWeight = weights[0];
+  for (const w of weights) {
+    if (Math.abs(w - weight) < Math.abs(bestWeight - weight)) bestWeight = w;
+  }
+  const heights = Object.keys(ratioTable[bestWeight]).map(Number).sort((a, b) => a - b);
+  let bestHeight = heights[0];
+  for (const h of heights) {
+    if (Math.abs(h - height) < Math.abs(bestHeight - height)) bestHeight = h;
+  }
+  return ratioTable[bestWeight][bestHeight];
+}
+
+const mealDistribution = [
+  { id: 'breakfast', label: '早餐', ratio: 0.20 },
+  { id: 'lunch', label: '午餐', ratio: 0.30 },
+  { id: 'preWorkout', label: '训练前', ratio: 0.15 },
+  { id: 'postWorkout', label: '训练后', ratio: 0.20 },
+  { id: 'dinner', label: '晚餐', ratio: 0.15 },
+];
+
 const routeFromHash = () => (window.location.hash || '#/').replace('#/', '') || 'dashboard';
 
 function NotFound() {
@@ -240,6 +295,20 @@ function DietCourse({ goal, query }) {
   const relatedQa = data.qa.filter((item) => item.category === category && matches(item, query)).slice(0, 8);
   const filterRows = (rows) => rows.filter((row) => matches(row, query)).slice(0, 60);
 
+  // 提升 profile 状态到 DietCourse 层级，供 GoalInputPlanner 和 MealPlanner 共享
+  const storageKey = `fitknow-${goal}-profile`;
+  const [profile, setProfile] = useState(() => {
+    try {
+      return { ...defaultProfiles[goal], ...JSON.parse(localStorage.getItem(storageKey) || '{}') };
+    } catch {
+      return defaultProfiles[goal];
+    }
+  });
+  useEffect(() => {
+    localStorage.setItem(storageKey, JSON.stringify(profile));
+  }, [profile, storageKey]);
+  const metrics = useMemo(() => computeNutrition(goal, profile), [goal, profile]);
+
   return (
     <div className="course-layout">
       <div className="content-stack">
@@ -251,7 +320,8 @@ function DietCourse({ goal, query }) {
           <section className="panel">
             <PanelTitle title={selected.title} subtitle={selected.summary || '原表没有额外摘要，建议直接查看餐次和原表行。'} />
             <SourcePills refs={selected.sourceRefs} />
-            <GoalInputPlanner goal={goal} plan={selected} />
+            <GoalInputPlanner goal={goal} plan={selected} profile={profile} setProfile={setProfile} metrics={metrics} />
+            <MealPlanner goal={goal} metrics={metrics} />
             <PanelTitle title="原表输入说明" subtitle="下面保留 Excel 中对输入项、调整规则和执行注意事项的原始说明。" />
             <div className="info-grid">
               {selected.inputs.map((item, index) => (
@@ -306,22 +376,8 @@ const defaultProfiles = {
   'muscle-gain': { sex: 'male', height: '175', weight: '65', age: '28', activity: '1.55', delta: '250' },
 };
 
-function GoalInputPlanner({ goal, plan }) {
-  const storageKey = `fitknow-${goal}-profile`;
-  const [profile, setProfile] = useState(() => {
-    try {
-      return { ...defaultProfiles[goal], ...JSON.parse(localStorage.getItem(storageKey) || '{}') };
-    } catch {
-      return defaultProfiles[goal];
-    }
-  });
-
-  useEffect(() => {
-    localStorage.setItem(storageKey, JSON.stringify(profile));
-  }, [profile, storageKey]);
-
+function GoalInputPlanner({ goal, plan, profile, setProfile, metrics }) {
   const update = (field) => (event) => setProfile((current) => ({ ...current, [field]: event.target.value }));
-  const metrics = useMemo(() => computeNutrition(goal, profile), [goal, profile]);
   const isFatLoss = goal === 'fat-loss';
 
   return (
@@ -391,6 +447,76 @@ function GoalInputPlanner({ goal, plan }) {
   );
 }
 
+function MealPlanner({ goal, metrics }) {
+  const [dayType, setDayType] = useState('training');
+  const isTraining = dayType === 'training';
+  const carbs = isTraining ? metrics.trainingCarbs : metrics.restCarbs;
+  const protein = isTraining ? metrics.trainingProtein : metrics.restProtein;
+  const fat = isTraining ? metrics.trainingFat : metrics.restFat;
+
+  // 从 data.foods 筛选推荐食物
+  const carbFoods = data.foods.filter((f) => f.macroType === '碳水');
+  const proteinFoods = data.foods.filter((f) => f.macroType === '蛋白质');
+
+  // 为每餐选择一个推荐碳水食物和一个推荐蛋白质食物
+  const pickFood = (foods, idx) => foods[idx % foods.length];
+
+  return (
+    <div className="meal-planner">
+      <div className="planner-head">
+        <div>
+          <p className="section-label">餐次分配</p>
+          <h3>每日饮食计划</h3>
+          <p>根据比例表计算的宏量营养素，按餐次比例分配并推荐食物克重。</p>
+        </div>
+        <div className="day-toggle">
+          <button className={isTraining ? 'selected' : ''} onClick={() => setDayType('training')}>力训日</button>
+          <button className={!isTraining ? 'selected' : ''} onClick={() => setDayType('rest')}>休息日</button>
+        </div>
+      </div>
+
+      <div className="macro-summary">
+        <span>碳水 <b>{carbs}g</b></span>
+        <span>蛋白质 <b>{protein}g</b></span>
+        <span>脂肪 <b>{fat}g</b></span>
+        <small>比例：碳水 {metrics.carbsRate}g/kg · 蛋白质 {metrics.proteinRate}g/kg · 脂肪 {metrics.fatRate}g/kg</small>
+      </div>
+
+      <div className="meal-table">
+        <div className="meal-header">
+          <span>餐次</span>
+          <span>碳水 (g)</span>
+          <span>蛋白质 (g)</span>
+          <span>脂肪 (g)</span>
+        </div>
+        {mealDistribution.map((meal, idx) => {
+          const mealCarbs = Math.round(carbs * meal.ratio);
+          const mealProtein = Math.round(protein * meal.ratio);
+          const mealFat = Math.round(fat * meal.ratio);
+          const carbFood = pickFood(carbFoods, idx);
+          const proteinFood = pickFood(proteinFoods, idx);
+          const carbGrams = carbFood?.rate ? Math.round(mealCarbs / Number(carbFood.rate)) : null;
+          const proteinGrams = proteinFood?.rate ? Math.round(mealProtein / Number(proteinFood.rate)) : null;
+          return (
+            <div className="meal-row" key={meal.id}>
+              <b>{meal.label}<small> {Math.round(meal.ratio * 100)}%</small></b>
+              <span>
+                {mealCarbs}g
+                {carbGrams && carbFood && <small>≈ {carbGrams}g {carbFood.name}</small>}
+              </span>
+              <span>
+                {mealProtein}g
+                {proteinGrams && proteinFood && <small>≈ {proteinGrams}g {proteinFood.name}</small>}
+              </span>
+              <span>{mealFat}g</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function computeNutrition(goal, profile) {
   const sex = profile.sex === 'female' ? 'female' : 'male';
   const height = clampNumber(profile.height, 120, 230, 175);
@@ -405,11 +531,49 @@ function computeNutrition(goal, profile) {
   const minimumCalories = sex === 'male' ? 1500 : 1200;
   const rawTarget = goal === 'fat-loss' ? tdee - delta : tdee + delta;
   const targetCalories = Math.max(Math.round(rawTarget), minimumCalories);
-  const proteinRate = goal === 'fat-loss' ? 1.8 : 1.7;
-  const fatRate = goal === 'fat-loss' ? 0.75 : 0.9;
-  const protein = Math.round(weight * proteinRate);
-  const fat = Math.round(weight * fatRate);
-  const carbs = Math.max(0, Math.round((targetCalories - protein * 4 - fat * 9) / 4));
+
+  // 使用好人松松比例表查表（仅男性适用，女性回退到旧公式）
+  let carbsRate, proteinRate, fatRate;
+  if (sex === 'male') {
+    const table = goal === 'fat-loss' ? maleFatLossRatios : maleMuscleGainRatios;
+    const ratios = lookupRatio(table, weight, height);
+    [carbsRate, proteinRate, fatRate] = ratios;
+  } else {
+    carbsRate = 0; // 女性暂用旧公式计算
+    proteinRate = goal === 'fat-loss' ? 1.8 : 1.7;
+    fatRate = goal === 'fat-loss' ? 0.75 : 0.9;
+  }
+
+  let trainingCarbs, trainingProtein, trainingFat, restCarbs, restProtein, restFat;
+
+  if (sex === 'male' && carbsRate > 0) {
+    // 力训日：比例 * 体重
+    trainingCarbs = Math.round(weight * carbsRate);
+    trainingProtein = Math.round(weight * proteinRate);
+    trainingFat = Math.round(weight * fatRate);
+    // 休息日：碳水 * 0.82，蛋白质和脂肪不变
+    restCarbs = Math.round(trainingCarbs * 0.82);
+    restProtein = trainingProtein;
+    restFat = trainingFat;
+  } else {
+    // 女性回退：用旧公式
+    const protein = Math.round(weight * proteinRate);
+    const fat = Math.round(weight * fatRate);
+    const carbs = Math.max(0, Math.round((targetCalories - protein * 4 - fat * 9) / 4));
+    trainingCarbs = carbs;
+    trainingProtein = protein;
+    trainingFat = fat;
+    restCarbs = Math.round(carbs * 0.82);
+    restProtein = protein;
+    restFat = fat;
+    carbsRate = carbs / weight;
+  }
+
+  // 兼容旧字段：用力训日数据
+  const protein = trainingProtein;
+  const fat = trainingFat;
+  const carbs = trainingCarbs;
+
   const bmiLabel = bmi < 18.5 ? '偏低' : bmi < 24 ? '正常' : bmi < 28 ? '超重' : '肥胖';
   const targetWeight = Math.round((goal === 'fat-loss' ? 22 : 23) * heightM * heightM);
   const advice = goal === 'fat-loss'
@@ -428,6 +592,15 @@ function computeNutrition(goal, profile) {
     protein,
     fat,
     carbs,
+    carbsRate: Math.round(carbsRate * 100) / 100,
+    proteinRate: Math.round(proteinRate * 100) / 100,
+    fatRate: Math.round(fatRate * 100) / 100,
+    trainingCarbs,
+    trainingProtein,
+    trainingFat,
+    restCarbs,
+    restProtein,
+    restFat,
     advice,
     targetWeightText,
   };
