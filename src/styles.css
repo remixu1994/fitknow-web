@@ -973,3 +973,16 @@ main > * {
     animation: none;
   }
 }
+
+.error-page { text-align: center; padding: 48px 24px; }
+.error-icon { font-size: 48px; margin-bottom: 12px; }
+.error-page h1 { font-size: 24px; color: var(--ink); }
+.error-page p { color: var(--muted); }
+.error-details { margin: 16px auto; max-width: 600px; text-align: left; }
+.error-details pre { padding: 12px; background: var(--rail); border-radius: 8px; font-size: 13px; overflow-x: auto; }
+.error-refresh-btn { padding: 12px 24px; border: none; border-radius: 8px; background: var(--accent); color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; }
+.error-refresh-btn:hover { background: var(--accent-strong); }
+.not-found { text-align: center; padding: 64px 24px; }
+.not-found h2 { font-size: 64px; color: var(--muted); }
+.not-found p { color: var(--muted); font-size: 18px; margin-bottom: 24px; }
+.not-found a { display: inline-block; padding: 12px 24px; border-radius: 8px; background: var(--accent); color: #fff; font-weight: 700; text-decoration: none; }
