@@ -91,7 +91,7 @@ function Shell({ active, query, setQuery, children }) {
             <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="高位下拉 / 鸡胸肉 / 减脂不掉秤" />
           </label>
         </header>
-        <main>{children}</main>
+        <main key={active.id} className="page-enter">{children}</main>
       </div>
     </div>
   );
