@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import data from './data/generated/workbook.json';
 import './styles.css';
+import ErrorBoundary from './components/ErrorBoundary';
 
 const routes = [
   { id: 'dashboard', hash: '#/', label: '总览', mark: '01' },
@@ -16,6 +17,17 @@ const routes = [
 ];
 
 const routeFromHash = () => (window.location.hash || '#/').replace('#/', '') || 'dashboard';
+
+function NotFound() {
+  return (
+    <div className="not-found">
+      <h2>404</h2>
+      <p>页面不存在</p>
+      <a href="#/">返回首页</a>
+    </div>
+  );
+}
+
 const asText = (value) => String(value ?? '');
 const compact = (value, max = 128) => asText(value).replace(/\s+/g, ' ').slice(0, max);
 const matches = (item, query) => !query || JSON.stringify(item).toLowerCase().includes(query.toLowerCase());
@@ -39,7 +51,15 @@ function App() {
     return () => document.removeEventListener('keydown', onKey);
   }, []);
 
-  const active = routes.find((item) => item.id === route) || routes[0];
+  const active = routes.find((item) => item.id === route);
+
+  if (!active) {
+    return (
+      <Shell active={routes[0]} query={query} setQuery={setQuery}>
+        <NotFound />
+      </Shell>
+    );
+  }
 
   return (
     <>
@@ -829,4 +849,8 @@ function Lightbox({ image, close }) {
   );
 }
 
-createRoot(document.getElementById('root')).render(<App />);
+createRoot(document.getElementById('root')).render(
+  <ErrorBoundary>
+    <App />
+  </ErrorBoundary>
+);
