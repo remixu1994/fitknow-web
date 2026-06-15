@@ -122,6 +122,118 @@ def row_values(ws, row: int, cols: int | None = None) -> list[str]:
     return [clean(ws.cell(row, c).value) for c in range(1, limit + 1)]
 
 
+MEAL_PROFILES = {
+    "breakfast": {"label": "早饭", "carbPercent": 20, "proteinPercent": 20},
+    "preworkout": {"label": "练前餐", "carbPercent": 15, "proteinPercent": 0},
+    "postworkout": {"label": "练后餐", "carbPercent": 35, "proteinPercent": 30},
+    "regular": {"label": "其他餐", "carbPercent": 20, "proteinPercent": 30},
+    "snack": {"label": "零食/夜宵", "carbPercent": 10, "proteinPercent": 20},
+    "rest-main": {"label": "正餐", "carbPercent": 35, "proteinPercent": 30},
+}
+
+
+def meal_type_for_name(name: str, day_type: str) -> str:
+    if "零食" in name or "夜宵" in name:
+        return "snack"
+    if "练前" in name:
+        return "preworkout"
+    if "练后" in name:
+        return "postworkout"
+    if "早饭" in name:
+        return "breakfast"
+    if day_type in {"rest", "daily"} and ("午饭" in name or "晚饭" in name):
+        return "rest-main"
+    return "regular"
+
+
+def collect_meal_notes(ws, start_row: int, end_row: int, max_cols: int = 19) -> dict:
+    carb_options = []
+    protein_options = []
+    fat_notes = []
+    produce_notes = []
+    for row in range(start_row + 1, end_row):
+        values = row_values(ws, row, max_cols)
+        for value in values[4:8]:
+            if value and value != "0" and not re.fullmatch(r"\d+\.?", value):
+                carb_options.append(compact(value, 150))
+        for value in values[8:12]:
+            if value and value != "0" and not re.fullmatch(r"\d+\.?", value):
+                protein_options.append(compact(value, 160))
+        for value in values[12:13]:
+            if value and value != "0":
+                fat_notes.append(compact(value, 220))
+        for value in values[13:19]:
+            if value and value != "0":
+                produce_notes.append(compact(value, 220))
+    return {
+        "carbOptions": carb_options[:8],
+        "proteinOptions": protein_options[:8],
+        "fatNote": " ".join(fat_notes[:3]),
+        "produceNote": " ".join(produce_notes[:3]),
+    }
+
+
+def parse_meal_table(ws, day_type: str, title: str, start_row: int, end_row: int) -> dict:
+    meal_rows = []
+    for row in range(start_row, end_row + 1):
+        name = clean(ws.cell(row, 2).value)
+        if re.match(r"^[①②③④⑤]", name):
+            meal_rows.append((row, name))
+
+    meals = []
+    for index, (row, name) in enumerate(meal_rows):
+        next_row = meal_rows[index + 1][0] if index + 1 < len(meal_rows) else end_row + 1
+        meal_type = meal_type_for_name(name, day_type)
+        profile = MEAL_PROFILES[meal_type]
+        notes = collect_meal_notes(ws, row, next_row)
+        meals.append({
+            "order": re.match(r"^[①②③④⑤]", name).group(0),
+            "name": name,
+            "mealType": meal_type,
+            "mealTypeLabel": profile["label"],
+            "carbPercent": profile["carbPercent"],
+            "proteinPercent": profile["proteinPercent"],
+            "carbOptions": notes["carbOptions"],
+            "proteinOptions": ["蛋白质不用吃"] if meal_type == "preworkout" else notes["proteinOptions"],
+            "fatNote": notes["fatNote"],
+            "produceNote": notes["produceNote"],
+            "sourceRefs": [source_ref(ws, row_range=f"{row}:{next_row - 1}")],
+        })
+    return {
+        "dayType": day_type,
+        "title": title,
+        "meals": meals,
+        "sourceRefs": [source_ref(ws, row_range=f"{start_row}:{end_row}")],
+    }
+
+
+def parse_diet_meal_tables(ws, goal: str) -> list[dict]:
+    if goal != "fat-loss":
+        return []
+    tables = []
+    markers = []
+    for row in range(1, ws.max_row + 1):
+        text = " ".join(row_values(ws, row, min(ws.max_column, 19)))
+        if "力训日饮食" in text:
+            markers.append(("training", "力训日饮食", row))
+        elif "休息日饮食" in text:
+            markers.append(("rest", "休息日饮食", row))
+        elif "每日饮食" in text:
+            markers.append(("daily", "每日饮食", row))
+    for index, (day_type, title, marker_row) in enumerate(markers):
+        next_marker = markers[index + 1][2] if index + 1 < len(markers) else ws.max_row + 1
+        end_row = next_marker - 1
+        for row in range(marker_row + 1, next_marker):
+            text = " ".join(row_values(ws, row, min(ws.max_column, 19)))
+            if "训练计划" in text or "有氧方案" in text:
+                end_row = row - 1
+                break
+        table = parse_meal_table(ws, day_type, title, marker_row, end_row)
+        if table["meals"]:
+            tables.append(table)
+    return tables
+
+
 def save_images(ws) -> list[dict]:
     assets = []
     for idx, img in enumerate(sorted(getattr(ws, "_images", []), key=image_anchor), 1):
@@ -153,6 +265,7 @@ def parse_diet_plan(ws, idx: int) -> dict:
     inputs = []
     training_day = []
     rest_day = []
+    daily_meals = []
     current_section = "summary"
     for item in rows:
         text = " ".join(v for v in item["values"] if v)
@@ -163,6 +276,9 @@ def parse_diet_plan(ws, idx: int) -> dict:
             continue
         if "休息日饮食" in text:
             current_section = "rest"
+            continue
+        if "每日饮食" in text:
+            current_section = "daily"
             continue
         if item["row"] <= 28:
             label = next((v for v in item["values"][1:5] if v and v not in {"自己输入"}), "")
@@ -175,9 +291,12 @@ def parse_diet_plan(ws, idx: int) -> dict:
             training_day.append({"row": item["row"], "text": compact(text, 320), "sourceRefs": [source_ref(ws, item["row"])]})
         elif current_section == "rest":
             rest_day.append({"row": item["row"], "text": compact(text, 320), "sourceRefs": [source_ref(ws, item["row"])]})
+        elif current_section == "daily":
+            daily_meals.append({"row": item["row"], "text": compact(text, 320), "sourceRefs": [source_ref(ws, item["row"])]})
         else:
             notes.append(compact(text, 260))
     summary = "；".join(n for n in notes[:3] if n)
+    meal_tables = parse_diet_meal_tables(ws, goal)
     return {
         "id": slugify(title),
         "sheetIndex": idx,
@@ -188,6 +307,8 @@ def parse_diet_plan(ws, idx: int) -> dict:
         "inputs": inputs[:12],
         "trainingDayMeals": training_day[:80],
         "restDayMeals": rest_day[:80],
+        "dailyMeals": daily_meals[:80],
+        "mealTables": meal_tables,
         "notes": notes[:12],
         "rawRows": rows,
         "sourceRefs": [source_ref(ws, row_range=f"1:{ws.max_row}")],

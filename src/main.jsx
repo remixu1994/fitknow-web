@@ -295,33 +295,34 @@ function DietCourse({ goal, query }) {
   const relatedQa = data.qa.filter((item) => item.category === category && matches(item, query)).slice(0, 8);
   const filterRows = (rows) => rows.filter((row) => matches(row, query)).slice(0, 60);
 
-  // 提升 profile 状态到 DietCourse 层级，供 GoalInputPlanner 和 MealPlanner 共享
-  const storageKey = `fitknow-${goal}-profile`;
-  const [profile, setProfile] = useState(() => {
-    try {
-      return { ...defaultProfiles[goal], ...JSON.parse(localStorage.getItem(storageKey) || '{}') };
-    } catch {
-      return defaultProfiles[goal];
-    }
-  });
-  useEffect(() => {
-    localStorage.setItem(storageKey, JSON.stringify(profile));
-  }, [profile, storageKey]);
-  const metrics = useMemo(() => computeNutrition(goal, profile), [goal, profile]);
-
   return (
     <div className="course-layout">
       <div className="content-stack">
-        <section className="panel">
-          <PanelTitle title={`${category}饮食路径`} subtitle="先选择训练发生的时间，再看力训日、休息日、输入项和原表说明。" />
-          <Segmented items={plans} selectedId={selected?.id} onSelect={setSelectedId} getLabel={(item) => item.timing} />
-        </section>
+        {goal !== 'fat-loss' && (
+          <section className="panel">
+            <PanelTitle title={`${category}饮食路径`} subtitle="先选择训练发生的时间，再看力训日、休息日、输入项和原表说明。" />
+            <Segmented items={plans} selectedId={selected?.id} onSelect={setSelectedId} getLabel={(item) => item.timing} />
+          </section>
+        )}
         {selected && (
           <section className="panel">
-            <PanelTitle title={selected.title} subtitle={selected.summary || '原表没有额外摘要，建议直接查看餐次和原表行。'} />
-            <SourcePills refs={selected.sourceRefs} />
-            <GoalInputPlanner goal={goal} plan={selected} profile={profile} setProfile={setProfile} metrics={metrics} />
-            <MealPlanner goal={goal} metrics={metrics} />
+            {goal !== 'fat-loss' && (
+              <>
+                <PanelTitle title={selected.title} subtitle={selected.summary || '原表没有额外摘要，建议直接查看餐次和原表行。'} />
+                <SourcePills refs={selected.sourceRefs} />
+              </>
+            )}
+            <GoalInputPlanner
+              goal={goal}
+              plan={selected}
+              query={query}
+              pathSelector={goal === 'fat-loss' ? (
+                <div className="path-selector-inline">
+                  <PanelTitle title="减脂饮食路径" subtitle="选择训练发生的时间，下面会切换对应的力训日、休息日或每日饮食表。" />
+                  <Segmented items={plans} selectedId={selected?.id} onSelect={setSelectedId} getLabel={(item) => item.timing} />
+                </div>
+              ) : null}
+            />
             <PanelTitle title="原表输入说明" subtitle="下面保留 Excel 中对输入项、调整规则和执行注意事项的原始说明。" />
             <div className="info-grid">
               {selected.inputs.map((item, index) => (
@@ -331,10 +332,12 @@ function DietCourse({ goal, query }) {
                 </article>
               ))}
             </div>
-            <div className="split-grid">
-              <MealList title="力训日饮食" rows={filterRows(selected.trainingDayMeals)} />
-              <MealList title="休息日饮食" rows={filterRows(selected.restDayMeals)} />
-            </div>
+            {goal === 'fat-loss' && selected.mealTables?.length ? null : (
+              <div className="split-grid">
+                <MealList title="力训日饮食" rows={filterRows(selected.trainingDayMeals)} />
+                <MealList title="休息日饮食" rows={filterRows(selected.restDayMeals)} />
+              </div>
+            )}
             <details className="source-details">
               <summary>查看原表行</summary>
               <RawRows rows={selected.rawRows} />
@@ -358,6 +361,84 @@ const activityOptions = [
   { value: 1.725, label: '高活动量', detail: '每周 5-6 练' },
 ];
 
+const fatLossQuotaTables = {
+  training: {
+    male: {
+      '160-60': { trainingCarb: 2.6, restCarb: 2.0, protein: 1.4 },
+      '160-65': { trainingCarb: 2.6, restCarb: 1.9, protein: 1.4 },
+      '165-65': { trainingCarb: 2.6, restCarb: 2.0, protein: 1.4 },
+      '170-70': { trainingCarb: 2.6, restCarb: 2.0, protein: 1.4 },
+      '175-70': { trainingCarb: 2.7, restCarb: 2.1, protein: 1.4 },
+      '170-75': { trainingCarb: 2.5, restCarb: 2.0, protein: 1.4 },
+      '175-75': { trainingCarb: 2.6, restCarb: 2.1, protein: 1.4 },
+      '180-75': { trainingCarb: 2.7, restCarb: 2.1, protein: 1.4 },
+      '175-80': { trainingCarb: 2.5, restCarb: 2.0, protein: 1.4 },
+      '180-80': { trainingCarb: 2.6, restCarb: 2.1, protein: 1.4 },
+      '185-80': { trainingCarb: 2.6, restCarb: 2.1, protein: 1.4 },
+      '180-85': { trainingCarb: 2.5, restCarb: 2.0, protein: 1.4 },
+      '185-85': { trainingCarb: 2.6, restCarb: 2.1, protein: 1.4 },
+      '190-85': { trainingCarb: 2.6, restCarb: 2.2, protein: 1.4 },
+      '175-90': { trainingCarb: 2.4, restCarb: 2.0, protein: 1.3 },
+      '180-90': { trainingCarb: 2.5, restCarb: 2.0, protein: 1.3 },
+      '185-90': { trainingCarb: 2.5, restCarb: 2.1, protein: 1.4 },
+      '190-90': { trainingCarb: 2.6, restCarb: 2.1, protein: 1.4 },
+    },
+    female: {
+      '150-45': { trainingCarb: 2.4, restCarb: 1.8, protein: 1.3 },
+      '150-50': { trainingCarb: 2.3, restCarb: 1.8, protein: 1.2 },
+      '155-50': { trainingCarb: 2.4, restCarb: 1.9, protein: 1.3 },
+      '160-50': { trainingCarb: 2.5, restCarb: 2.0, protein: 1.3 },
+      '150-55': { trainingCarb: 2.2, restCarb: 1.8, protein: 1.2 },
+      '155-55': { trainingCarb: 2.3, restCarb: 1.9, protein: 1.2 },
+      '160-55': { trainingCarb: 2.4, restCarb: 1.9, protein: 1.3 },
+      '165-55': { trainingCarb: 2.5, restCarb: 2.0, protein: 1.3 },
+      '160-60': { trainingCarb: 2.3, restCarb: 1.9, protein: 1.2 },
+      '165-60': { trainingCarb: 2.4, restCarb: 2.0, protein: 1.3 },
+      '170-60': { trainingCarb: 2.5, restCarb: 2.1, protein: 1.3 },
+      '170-65': { trainingCarb: 2.4, restCarb: 2.0, protein: 1.3 },
+      '175-65': { trainingCarb: 2.5, restCarb: 2.1, protein: 1.3 },
+      '170-70': { trainingCarb: 2.3, restCarb: 2.0, protein: 1.2 },
+      '175-70': { trainingCarb: 2.4, restCarb: 2.0, protein: 1.3 },
+      '180-70': { trainingCarb: 2.4, restCarb: 2.1, protein: 1.3 },
+    },
+  },
+  noStrength: {
+    male: {
+      '160-60': { dailyCarb: 2.4, protein: 1.0 },
+      '160-65': { dailyCarb: 2.3, protein: 1.0 },
+      '165-65': { dailyCarb: 2.4, protein: 1.0 },
+      '160-70': { dailyCarb: 2.3, protein: 1.0 },
+      '165-70': { dailyCarb: 2.3, protein: 1.0 },
+      '170-70': { dailyCarb: 2.4, protein: 1.0 },
+      '175-70': { dailyCarb: 2.5, protein: 1.1 },
+      '170-75': { dailyCarb: 2.4, protein: 1.0 },
+      '175-75': { dailyCarb: 2.4, protein: 1.0 },
+      '180-75': { dailyCarb: 2.5, protein: 1.1 },
+      '175-80': { dailyCarb: 2.4, protein: 1.0 },
+      '180-80': { dailyCarb: 2.4, protein: 1.0 },
+      '185-80': { dailyCarb: 2.5, protein: 1.1 },
+    },
+    female: {
+      '150-45': { dailyCarb: 2.2, protein: 1.1 },
+      '150-50': { dailyCarb: 2.1, protein: 1.1 },
+      '155-50': { dailyCarb: 2.1, protein: 0.9 },
+      '160-50': { dailyCarb: 2.1, protein: 1.2 },
+      '150-55': { dailyCarb: 2.1, protein: 1.0 },
+      '155-55': { dailyCarb: 2.0, protein: 0.9 },
+      '160-55': { dailyCarb: 2.1, protein: 1.1 },
+      '165-55': { dailyCarb: 2.2, protein: 1.2 },
+      '155-60': { dailyCarb: 2.0, protein: 0.9 },
+      '160-60': { dailyCarb: 2.0, protein: 1.1 },
+      '165-60': { dailyCarb: 2.1, protein: 1.1 },
+      '170-60': { dailyCarb: 2.2, protein: 1.2 },
+      '165-65': { dailyCarb: 2.1, protein: 1.1 },
+      '170-65': { dailyCarb: 2.1, protein: 1.2 },
+      '175-65': { dailyCarb: 2.2, protein: 1.2 },
+      '180-65': { dailyCarb: 2.3, protein: 1.2 },
+    },
+  },
+};
+
 const speedOptions = {
   'fat-loss': [
     { value: 300, label: '稳妥减脂', detail: '每日约 -300 kcal' },
@@ -372,13 +453,28 @@ const speedOptions = {
 };
 
 const defaultProfiles = {
-  'fat-loss': { sex: 'male', height: '175', weight: '75', age: '28', activity: '1.55', delta: '500' },
+  'fat-loss': { sex: 'male', height: '175', weight: '75', age: '28', strengthCalories: '200', cardioCalories: '0' },
   'muscle-gain': { sex: 'male', height: '175', weight: '65', age: '28', activity: '1.55', delta: '250' },
 };
 
-function GoalInputPlanner({ goal, plan, profile, setProfile, metrics }) {
+function GoalInputPlanner({ goal, plan, query = '', pathSelector = null }) {
+  const storageKey = `fitknow-${goal}-profile`;
+  const [profile, setProfile] = useState(() => {
+    try {
+      return { ...defaultProfiles[goal], ...JSON.parse(localStorage.getItem(storageKey) || '{}') };
+    } catch {
+      return defaultProfiles[goal];
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem(storageKey, JSON.stringify(profile));
+  }, [profile, storageKey]);
+
   const update = (field) => (event) => setProfile((current) => ({ ...current, [field]: event.target.value }));
+  const metrics = useMemo(() => computeNutrition(goal, profile, plan), [goal, profile, plan]);
   const isFatLoss = goal === 'fat-loss';
+  const isNoStrength = isFatLoss && isNoStrengthPlan(plan);
 
   return (
     <div className="planner-panel">
@@ -386,7 +482,7 @@ function GoalInputPlanner({ goal, plan, profile, setProfile, metrics }) {
         <div>
           <p className="section-label">自己输入</p>
           <h3>{isFatLoss ? '减脂目标计算器' : '增肌目标计算器'}</h3>
-          <p>{isFatLoss ? '根据身体数据估算维持热量，再给出减脂期目标热量和宏量营养素。' : '根据身体数据估算维持热量，再给出增肌期盈余热量和宏量营养素。'}</p>
+          <p>{isFatLoss ? '按 Excel 口径估算无运动总消耗、力训/休息日平衡热量和应吃热量，再结合配额表拆到每餐。' : '根据身体数据估算维持热量，再给出增肌期盈余热量和宏量营养素。'}</p>
         </div>
         <SourcePills refs={plan.sourceRefs} />
       </div>
@@ -401,135 +497,129 @@ function GoalInputPlanner({ goal, plan, profile, setProfile, metrics }) {
         <Field label="身高 cm"><input inputMode="decimal" value={profile.height} onChange={update('height')} /></Field>
         <Field label="体重 kg"><input inputMode="decimal" value={profile.weight} onChange={update('weight')} /></Field>
         <Field label="年龄"><input inputMode="numeric" value={profile.age} onChange={update('age')} /></Field>
-        <Field label="活动水平">
-          <select value={profile.activity} onChange={update('activity')}>
-            {activityOptions.map((item) => <option value={item.value} key={item.value}>{item.label} · {item.detail}</option>)}
-          </select>
-        </Field>
-        <Field label={isFatLoss ? '减脂速度' : '增肌速度'}>
-          <select value={profile.delta} onChange={update('delta')}>
-            {speedOptions[goal].map((item) => <option value={item.value} key={item.value}>{item.label} · {item.detail}</option>)}
-          </select>
-        </Field>
+        {isFatLoss ? (
+          <>
+            {!isNoStrength && <Field label="力训消耗 kcal/天"><input inputMode="decimal" value={profile.strengthCalories ?? ''} onChange={update('strengthCalories')} /></Field>}
+            <Field label="有氧消耗 kcal/天"><input inputMode="decimal" value={profile.cardioCalories ?? ''} onChange={update('cardioCalories')} /></Field>
+          </>
+        ) : (
+          <>
+            <Field label="活动水平">
+              <select value={profile.activity} onChange={update('activity')}>
+                {activityOptions.map((item) => <option value={item.value} key={item.value}>{item.label} · {item.detail}</option>)}
+              </select>
+            </Field>
+            <Field label="增肌速度">
+              <select value={profile.delta} onChange={update('delta')}>
+                {speedOptions[goal].map((item) => <option value={item.value} key={item.value}>{item.label} · {item.detail}</option>)}
+              </select>
+            </Field>
+          </>
+        )}
       </div>
 
       <div className="metric-strip">
         <Stat value={metrics.bmiText} label={`BMI · ${metrics.bmiLabel}`} />
         <Stat value={`${metrics.bmr} kcal`} label="基础代谢估算" />
-        <Stat value={`${metrics.tdee} kcal`} label="维持热量估算" />
-        <Stat value={`${metrics.targetCalories} kcal`} label={isFatLoss ? '减脂目标热量' : '增肌目标热量'} />
+        {isFatLoss ? (
+          <>
+            <Stat value={`${metrics.restingExpenditure} kcal`} label="无运动总消耗 b=a÷0.7" />
+            <Stat value={`${metrics.primaryTargetCalories} kcal`} label={isNoStrength ? '每日应吃热量' : '力训日应吃热量'} />
+          </>
+        ) : (
+          <>
+            <Stat value={`${metrics.tdee} kcal`} label="维持热量估算" />
+            <Stat value={`${metrics.targetCalories} kcal`} label="增肌目标热量" />
+          </>
+        )}
       </div>
 
-      <div className="macro-grid">
-        <article>
-          <b>蛋白质</b>
-          <strong>{metrics.protein} g/天</strong>
-          <span>{isFatLoss ? '优先保肌，建议分配到每餐。' : '支持训练恢复和肌肉合成。'}</span>
-        </article>
-        <article>
-          <b>脂肪</b>
-          <strong>{metrics.fat} g/天</strong>
-          <span>不要长期压得过低，优先保证基础摄入。</span>
-        </article>
-        <article>
-          <b>碳水</b>
-          <strong>{metrics.carbs} g/天</strong>
-          <span>{isFatLoss ? '优先放在训练前后和主餐。' : '训练日前后可适当集中。'}</span>
-        </article>
-      </div>
+      {isFatLoss ? <FatLossSummary metrics={metrics} plan={plan} /> : (
+        <div className="macro-grid">
+          <article>
+            <b>蛋白质</b>
+            <strong>{metrics.protein} g/天</strong>
+            <span>支持训练恢复和肌肉合成。</span>
+          </article>
+          <article>
+            <b>脂肪</b>
+            <strong>{metrics.fat} g/天</strong>
+            <span>不要长期压得过低，优先保证基础摄入。</span>
+          </article>
+          <article>
+            <b>碳水</b>
+            <strong>{metrics.carbs} g/天</strong>
+            <span>训练日前后可适当集中。</span>
+          </article>
+        </div>
+      )}
 
       <div className="advice-box">
         <b>{isFatLoss ? '执行建议' : '增肌建议'}</b>
         <p>{metrics.advice}</p>
         <p>{metrics.targetWeightText}</p>
       </div>
+
+      {isFatLoss && pathSelector}
+      {isFatLoss && <StructuredMealTables plan={plan} metrics={metrics} query={query} />}
     </div>
   );
 }
 
-function MealPlanner({ goal, metrics }) {
-  const [dayType, setDayType] = useState('training');
-  const isTraining = dayType === 'training';
-  const carbs = isTraining ? metrics.trainingCarbs : metrics.restCarbs;
-  const protein = isTraining ? metrics.trainingProtein : metrics.restProtein;
-  const fat = isTraining ? metrics.trainingFat : metrics.restFat;
-
-  // 从 data.foods 筛选推荐食物
-  const carbFoods = data.foods.filter((f) => f.macroType === '碳水');
-  const proteinFoods = data.foods.filter((f) => f.macroType === '蛋白质');
-
-  // 为每餐选择一个推荐碳水食物和一个推荐蛋白质食物
-  const pickFood = (foods, idx) => foods[idx % foods.length];
-
-  return (
-    <div className="meal-planner">
-      <div className="planner-head">
-        <div>
-          <p className="section-label">餐次分配</p>
-          <h3>每日饮食计划</h3>
-          <p>根据比例表计算的宏量营养素，按餐次比例分配并推荐食物克重。</p>
-        </div>
-        <div className="day-toggle">
-          <button className={isTraining ? 'selected' : ''} onClick={() => setDayType('training')}>力训日</button>
-          <button className={!isTraining ? 'selected' : ''} onClick={() => setDayType('rest')}>休息日</button>
-        </div>
-      </div>
-
-      <div className="macro-summary">
-        <span>碳水 <b>{carbs}g</b></span>
-        <span>蛋白质 <b>{protein}g</b></span>
-        <span>脂肪 <b>{fat}g</b></span>
-        <small>比例：碳水 {metrics.carbsRate}g/kg · 蛋白质 {metrics.proteinRate}g/kg · 脂肪 {metrics.fatRate}g/kg</small>
-      </div>
-
-      <div className="meal-table">
-        <div className="meal-header">
-          <span>餐次</span>
-          <span>碳水 (g)</span>
-          <span>蛋白质 (g)</span>
-          <span>脂肪 (g)</span>
-        </div>
-        {mealDistribution.map((meal, idx) => {
-          const mealCarbs = Math.round(carbs * meal.ratio);
-          const mealProtein = Math.round(protein * meal.ratio);
-          const mealFat = Math.round(fat * meal.ratio);
-          const carbFood = pickFood(carbFoods, idx);
-          const proteinFood = pickFood(proteinFoods, idx);
-          const carbGrams = carbFood?.rate ? Math.round(mealCarbs / Number(carbFood.rate)) : null;
-          const proteinGrams = proteinFood?.rate ? Math.round(mealProtein / Number(proteinFood.rate)) : null;
-          return (
-            <div className="meal-row" key={meal.id}>
-              <b>{meal.label}<small> {Math.round(meal.ratio * 100)}%</small></b>
-              <span>
-                {mealCarbs}g
-                {carbGrams && carbFood && <small>≈ {carbGrams}g {carbFood.name}</small>}
-              </span>
-              <span>
-                {mealProtein}g
-                {proteinGrams && proteinFood && <small>≈ {proteinGrams}g {proteinFood.name}</small>}
-              </span>
-              <span>{mealFat}g</span>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function computeNutrition(goal, profile) {
+function computeNutrition(goal, profile, plan) {
   const sex = profile.sex === 'female' ? 'female' : 'male';
   const height = clampNumber(profile.height, 120, 230, 175);
   const weight = clampNumber(profile.weight, 35, 180, 70);
   const age = clampNumber(profile.age, 12, 80, 28);
-  const activity = clampNumber(profile.activity, 1.2, 1.9, 1.55);
-  const delta = clampNumber(profile.delta, 100, 900, goal === 'fat-loss' ? 500 : 250);
   const heightM = height / 100;
   const bmi = weight / (heightM * heightM);
   const bmr = Math.round(10 * weight + 6.25 * height - 5 * age + (sex === 'male' ? 5 : -161));
+  const bmiLabel = bmi < 18.5 ? '偏低' : bmi < 24 ? '正常' : bmi < 28 ? '超重' : '肥胖';
+  const targetWeight = Math.round((goal === 'fat-loss' ? 22 : 23) * heightM * heightM);
+
+  if (goal === 'fat-loss') {
+    const noStrength = isNoStrengthPlan(plan);
+    const strengthCalories = noStrength ? 0 : clampNumber(profile.strengthCalories, 0, 800, sex === 'male' ? 200 : 150);
+    const cardioCalories = clampNumber(profile.cardioCalories, 0, 1200, 0);
+    const restingExpenditure = Math.round(bmr / 0.7);
+    const maintenanceCalories = Math.round(restingExpenditure + cardioCalories);
+    const trainingMaintenanceCalories = Math.round(restingExpenditure + strengthCalories + cardioCalories);
+    const restMaintenanceCalories = maintenanceCalories;
+    const targetCalories = Math.round(maintenanceCalories * 0.64);
+    const trainingTargetCalories = Math.round(trainingMaintenanceCalories * 0.64);
+    const restTargetCalories = Math.round(restMaintenanceCalories * 0.64);
+    const quotaMatch = findFatLossQuota(sex, height, weight, noStrength);
+    const advice = noStrength
+      ? `每日应吃热量 = (${restingExpenditure} + ${cardioCalories}) × 0.64 ≈ ${targetCalories} kcal。有氧消耗请填平均到每天的数值。`
+      : `力训日应吃热量 = (${restingExpenditure} + ${strengthCalories} + ${cardioCalories}) × 0.64 ≈ ${trainingTargetCalories} kcal；休息日应吃热量 = (${restingExpenditure} + ${cardioCalories}) × 0.64 ≈ ${restTargetCalories} kcal。`;
+    return {
+      bmiText: Number.isFinite(bmi) ? bmi.toFixed(1) : '-',
+      bmiLabel,
+      sex,
+      height,
+      weight,
+      bmr,
+      restingExpenditure,
+      strengthCalories,
+      cardioCalories,
+      maintenanceCalories,
+      targetCalories,
+      trainingMaintenanceCalories,
+      restMaintenanceCalories,
+      trainingTargetCalories,
+      restTargetCalories,
+      primaryTargetCalories: noStrength ? targetCalories : trainingTargetCalories,
+      quotaMatch,
+      advice,
+      targetWeightText: `以 BMI 约 22 估算，阶段目标体重可先看 ${targetWeight} kg 附近；若已有伤病或代谢问题，优先咨询专业人士。`,
+    };
+  }
+
+  const activity = clampNumber(profile.activity, 1.2, 1.9, 1.55);
+  const delta = clampNumber(profile.delta, 100, 900, 250);
   const tdee = Math.round(bmr * activity);
   const minimumCalories = sex === 'male' ? 1500 : 1200;
-  const rawTarget = goal === 'fat-loss' ? tdee - delta : tdee + delta;
+  const rawTarget = tdee + delta;
   const targetCalories = Math.max(Math.round(rawTarget), minimumCalories);
 
   // 使用好人松松比例表查表（仅男性适用，女性回退到旧公式）
@@ -574,8 +664,6 @@ function computeNutrition(goal, profile) {
   const fat = trainingFat;
   const carbs = trainingCarbs;
 
-  const bmiLabel = bmi < 18.5 ? '偏低' : bmi < 24 ? '正常' : bmi < 28 ? '超重' : '肥胖';
-  const targetWeight = Math.round((goal === 'fat-loss' ? 22 : 23) * heightM * heightM);
   const advice = goal === 'fat-loss'
     ? `先按 ${targetCalories} kcal 执行 2 周，观察 7 日平均体重。若两周几乎不动，再减少 100-150 kcal 或增加有氧。`
     : `先按 ${targetCalories} kcal 执行 2-3 周，观察训练表现和腰围。若体重不上升，再增加 100-150 kcal。`;
@@ -610,6 +698,419 @@ function clampNumber(value, min, max, fallback) {
   const number = Number.parseFloat(value);
   if (!Number.isFinite(number)) return fallback;
   return Math.min(max, Math.max(min, number));
+}
+
+function isNoStrengthPlan(plan) {
+  return plan?.title?.includes('无力训者');
+}
+
+function roundedKey(value) {
+  return String(Math.round(Number(value) || 0));
+}
+
+function findFatLossQuota(sex, height, weight, noStrength) {
+  const tableGroup = noStrength ? fatLossQuotaTables.noStrength : fatLossQuotaTables.training;
+  const heightKey = roundedKey(height);
+  const weightValue = Math.round(Number(weight) || 0);
+  const entries = Object.entries(tableGroup[sex] || {})
+    .map(([key, entry]) => {
+      const [entryHeight, entryWeight] = key.split('-').map(Number);
+      return { key, entry, height: entryHeight, weight: entryWeight };
+    })
+    .filter((item) => String(item.height) === heightKey)
+    .sort((a, b) => a.weight - b.weight);
+  if (!entries.length) return null;
+  const exact = entries.find((item) => item.weight === weightValue);
+  const lowerOrEqual = entries.filter((item) => item.weight <= weightValue).at(-1);
+  const match = exact || lowerOrEqual || entries[0];
+  const entry = match.entry;
+  if (!entry) return null;
+  return { ...entry, key: match.key, sex, noStrength, matchedHeight: match.height, matchedWeight: match.weight, isExact: exact != null };
+}
+
+function dayLabel(dayType) {
+  if (dayType === 'training') return '力训日';
+  if (dayType === 'rest') return '休息日';
+  return '每日';
+}
+
+function computeMealTargets(metrics, table, meal) {
+  const quota = metrics.quotaMatch;
+  if (!quota) return null;
+  const carbRate = table.dayType === 'training' ? quota.trainingCarb : table.dayType === 'rest' ? quota.restCarb : quota.dailyCarb;
+  const proteinRate = quota.protein;
+  if (!carbRate || !proteinRate) return null;
+  const carbTotal = carbRate * metrics.weight;
+  const proteinTotal = proteinRate * metrics.weight;
+  return {
+    carbTotal,
+    proteinTotal,
+    carb: carbTotal * meal.carbPercent / 100,
+    protein: proteinTotal * meal.proteinPercent / 100,
+  };
+}
+
+function targetCaloriesForTable(metrics, dayType) {
+  if (dayType === 'training') return metrics.trainingTargetCalories;
+  if (dayType === 'rest') return metrics.restTargetCalories;
+  return metrics.targetCalories;
+}
+
+function convertFoodWeight(targetGrams, food) {
+  if (!Number.isFinite(targetGrams) || !food?.rate) return null;
+  const parsed = parseFoodRate(food);
+  if (!parsed) return null;
+  if (parsed.mode === 'unit') {
+    const count = targetGrams / parsed.rate;
+    return {
+      value: count < 10 ? Math.round(count * 10) / 10 : Math.round(count),
+      unit: parsed.unit,
+    };
+  }
+  return {
+    value: Math.round(targetGrams / parsed.rate),
+    unit: 'g',
+  };
+}
+
+function parseFoodRate(food) {
+  if (!food?.rate) return null;
+  const rateText = String(food.rate);
+  const unitMatch = rateText.match(/^(\d+(?:\.\d+)?)g\/(.+)$/);
+  if (unitMatch) {
+    const rate = Number.parseFloat(unitMatch[1]);
+    return rate ? { mode: 'unit', rate, unit: unitMatch[2] } : null;
+  }
+  const rate = Number.parseFloat(rateText);
+  return rate ? { mode: 'gram', rate, unit: 'g' } : null;
+}
+
+function computeFoodMacro(amount, food) {
+  const value = Number.parseFloat(amount);
+  const parsed = parseFoodRate(food);
+  if (!Number.isFinite(value) || value <= 0 || !parsed) return 0;
+  return value * parsed.rate;
+}
+
+function foodInputUnit(food) {
+  return parseFoodRate(food)?.unit || 'g';
+}
+
+function suggestedFoodAmount(target, food) {
+  const amount = convertFoodWeight(target, food);
+  return amount ? String(amount.value) : '';
+}
+
+function suggestedMacroAmount(amount, food) {
+  const macro = computeFoodMacro(amount, food);
+  if (!macro) return '';
+  return macro < 10 ? String(Math.round(macro * 10) / 10) : String(Math.round(macro));
+}
+
+function reverseFoodAmount(macro, food) {
+  const value = Number.parseFloat(macro);
+  const amount = convertFoodWeight(value, food);
+  return amount ? String(amount.value) : '';
+}
+
+function foodOptionLabel(food) {
+  return `${food.name} · ${food.rate}`;
+}
+
+function findFoodByQuery(query, foods, fuzzy = false) {
+  const text = `${query || ''}`.trim();
+  if (!text) return null;
+  const compactText = text.replace(/\s+/g, '');
+  const exact = foods.find((food) => foodOptionLabel(food) === text || food.name === text);
+  if (exact || !fuzzy) return exact || null;
+  return foods.find((food) => {
+    const name = food.name.replace(/\s+/g, '');
+    const label = foodOptionLabel(food).replace(/\s+/g, '');
+    return name.includes(compactText) || label.includes(compactText);
+  }) || null;
+}
+
+function foodMatchesOption(food, option) {
+  const text = `${option || ''}`.replace(/\s+/g, '');
+  const name = `${food.name}`.replace(/\s+/g, '');
+  return text && (text.includes(name) || name.includes(text.slice(0, Math.min(4, text.length))));
+}
+
+function findDefaultFood(options = [], macroType, foods = data.foods) {
+  const macroFoods = foods.filter((food) => food.macroType === macroType);
+  const optionMatch = macroFoods.find((food) => options.some((option) => foodMatchesOption(food, option)));
+  if (optionMatch) return optionMatch;
+  const fallbackNames = macroType === '碳水'
+    ? ['米饭（很软）', '米饭（一般）']
+    : ['鸡蛋', '鸡胸肉', '瘦猪肉', '瘦牛肉'];
+  return macroFoods.find((food) => fallbackNames.some((name) => food.name.includes(name))) || macroFoods[0];
+}
+
+function FatLossSummary({ metrics, plan }) {
+  const quota = metrics.quotaMatch;
+  const noStrength = isNoStrengthPlan(plan);
+  return (
+    <>
+      <div className="macro-grid fatloss-metrics">
+        {noStrength ? (
+          <>
+            <article>
+              <b>每日平衡热量</b>
+              <strong>{metrics.maintenanceCalories} kcal</strong>
+              <span>d = b + 有氧消耗</span>
+            </article>
+            <article>
+              <b>每日应吃热量</b>
+              <strong>{metrics.targetCalories} kcal</strong>
+              <span>平衡热量 × 0.64</span>
+            </article>
+          </>
+        ) : (
+          <>
+            <article>
+              <b>力训日平衡热量</b>
+              <strong>{metrics.trainingMaintenanceCalories} kcal</strong>
+              <span>e1 = 无运动总消耗 + 力训消耗 + 有氧消耗</span>
+            </article>
+            <article>
+              <b>休息日平衡热量</b>
+              <strong>{metrics.restMaintenanceCalories} kcal</strong>
+              <span>e2 = 无运动总消耗 + 有氧消耗</span>
+            </article>
+            <article>
+              <b>力训日应吃热量</b>
+              <strong>{metrics.trainingTargetCalories} kcal</strong>
+              <span>力训日平衡热量 × 0.64</span>
+            </article>
+            <article>
+              <b>休息日应吃热量</b>
+              <strong>{metrics.restTargetCalories} kcal</strong>
+              <span>休息日平衡热量 × 0.64</span>
+            </article>
+          </>
+        )}
+      </div>
+      <div className="quota-box">
+        <div>
+          <p className="section-label">配额查表</p>
+          <h3>{quota ? `${metrics.height}cm / ${metrics.weight}kg` : '暂无匹配配额'}</h3>
+          <p>{quota ? `配额单位为 g/kg 体重，采用 ${quota.matchedHeight}cm / ${quota.matchedWeight}kg 档${quota.isExact ? '' : '（体重按不超过输入值的最近档位取值）'}，下面按当前体重换算每日目标克数。` : '当前身高没有录入配额档位，饮食表仍可查看，但克数和食物重量暂不计算。'}</p>
+        </div>
+        {quota && (
+          <div className="quota-grid">
+            {noStrength ? (
+              <>
+                <Stat value={`${quota.dailyCarb} g/kg`} label={`每日碳水 · ${Math.round(quota.dailyCarb * metrics.weight)} g`} />
+                <Stat value={`${quota.protein} g/kg`} label={`每日蛋白质 · ${Math.round(quota.protein * metrics.weight)} g`} />
+              </>
+            ) : (
+              <>
+                <Stat value={`${quota.trainingCarb} g/kg`} label={`训练日碳水 · ${Math.round(quota.trainingCarb * metrics.weight)} g`} />
+                <Stat value={`${quota.restCarb} g/kg`} label={`休息日碳水 · ${Math.round(quota.restCarb * metrics.weight)} g`} />
+                <Stat value={`${quota.protein} g/kg`} label={`每日蛋白质 · ${Math.round(quota.protein * metrics.weight)} g`} />
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
+function StructuredMealTables({ plan, metrics, query }) {
+  const tables = plan.mealTables || [];
+  if (!tables.length) return null;
+  return (
+    <div className="structured-meals">
+      {tables.map((table) => {
+        const visibleMeals = table.meals.filter((meal) => matches({ table: table.title, meal }, query));
+        if (!visibleMeals.length) return null;
+        const firstTargets = visibleMeals.length ? computeMealTargets(metrics, table, visibleMeals[0]) : null;
+        const calorie = targetCaloriesForTable(metrics, table.dayType);
+        const guidance = collectMealGuidance(visibleMeals);
+        return (
+          <section className="meal-table-panel" key={table.dayType}>
+            <div className="meal-table-head">
+              <div>
+                <p className="section-label">{dayLabel(table.dayType)}饮食</p>
+                <h3>{table.title}</h3>
+                <p>按全天配额拆分到每餐，再用食物营养率换算应吃重量。</p>
+              </div>
+              <div className="meal-table-totals">
+                <Stat value={calorie ? `${calorie} kcal` : '-'} label="应吃热量" />
+                <Stat value={firstTargets ? `${Math.round(firstTargets.carbTotal)} g` : '-'} label="全天碳水" />
+                <Stat value={firstTargets ? `${Math.round(firstTargets.proteinTotal)} g` : '-'} label="全天蛋白质" />
+              </div>
+            </div>
+            <div className="meal-card-grid">
+              {visibleMeals.map((meal) => <MealCard key={`${table.dayType}-${meal.name}`} table={table} meal={meal} metrics={metrics} />)}
+            </div>
+            <MealGuidance guidance={guidance} />
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
+function MealCard({ table, meal, metrics }) {
+  const targets = computeMealTargets(metrics, table, meal);
+  return (
+    <article className="meal-card">
+      <div className="meal-card-title">
+        <span>{meal.order}</span>
+        <div>
+          <h4>{meal.name.replace(/^[①②③④⑤]/, '')}</h4>
+          <p>{meal.mealTypeLabel} · 碳水 {meal.carbPercent}% · 蛋白质 {meal.proteinPercent}%</p>
+        </div>
+      </div>
+      <div className="meal-macro-columns">
+        <MealFoodCell macroType="碳水" target={targets?.carb} options={meal.carbOptions} />
+        <MealFoodCell macroType="蛋白质" target={targets?.protein} options={meal.proteinOptions} disabled={meal.proteinPercent === 0} />
+      </div>
+    </article>
+  );
+}
+
+function collectMealGuidance(meals) {
+  const unique = (items) => [...new Set(items.map((item) => (item || '').trim()).filter(Boolean))];
+  return {
+    fat: unique(meals.map((meal) => meal.fatNote)),
+    produce: unique(meals.map((meal) => meal.produceNote)),
+  };
+}
+
+function MealGuidance({ guidance }) {
+  if (!guidance.fat.length && !guidance.produce.length) return null;
+  return (
+    <div className="meal-guidance">
+      {guidance.fat.length > 0 && (
+        <article>
+          <b>脂肪吃法</b>
+          {guidance.fat.map((text) => <p key={text}>{text}</p>)}
+        </article>
+      )}
+      {guidance.produce.length > 0 && (
+        <article>
+          <b>蔬菜/水果</b>
+          {guidance.produce.map((text) => <p key={text}>{text}</p>)}
+        </article>
+      )}
+    </div>
+  );
+}
+
+function MealFoodCell({ macroType, target, options, disabled = false }) {
+  const foods = useMemo(() => data.foods.filter((food) => food.macroType === macroType), [macroType]);
+  const defaultFood = useMemo(() => findDefaultFood(options, macroType, foods), [options, macroType, foods]);
+  const listId = useMemo(() => `foods-${macroType}-${Math.random().toString(36).slice(2)}`, [macroType]);
+  const makeEntry = (food = defaultFood || foods[0], amount = suggestedFoodAmount(target, food), macro = Number.isFinite(target) ? String(Math.round(target)) : suggestedMacroAmount(amount, food)) => ({
+    id: `${Date.now()}-${Math.random()}`,
+    foodId: food?.id || foods[0]?.id || '',
+    foodQuery: food ? foodOptionLabel(food) : '',
+    amount,
+    macro,
+  });
+  const makeBlankEntry = () => ({
+    id: `${Date.now()}-${Math.random()}`,
+    foodId: '',
+    foodQuery: '',
+    amount: '',
+    macro: '',
+  });
+  const [entries, setEntries] = useState(() => [makeEntry()]);
+
+  useEffect(() => {
+    setEntries([makeEntry()]);
+  }, [defaultFood?.id, target, foods]);
+
+  const updateEntry = (id, patch) => {
+    setEntries((current) => current.map((entry) => (entry.id === id ? { ...entry, ...patch } : entry)));
+  };
+  const addEntry = () => setEntries((current) => [...current, makeBlankEntry()]);
+  const removeEntry = (id) => setEntries((current) => current.length > 1 ? current.filter((entry) => entry.id !== id) : current);
+  const applyFoodQuery = (entry, query, fuzzy = false) => {
+    const nextFood = findFoodByQuery(query, foods, fuzzy);
+    if (!nextFood) {
+      updateEntry(entry.id, { foodId: '', foodQuery: query, macro: '' });
+      return;
+    }
+    const macroValue = Number.parseFloat(entry.macro);
+    const amount = Number.isFinite(macroValue) && macroValue > 0
+      ? reverseFoodAmount(entry.macro, nextFood)
+      : entry.amount;
+    updateEntry(entry.id, {
+      foodId: nextFood.id,
+      foodQuery: foodOptionLabel(nextFood),
+      amount,
+      macro: suggestedMacroAmount(amount, nextFood),
+    });
+  };
+  const applyAmount = (entry, value, food) => {
+    updateEntry(entry.id, { amount: value, macro: suggestedMacroAmount(value, food) });
+  };
+  const applyMacro = (entry, value, food) => {
+    updateEntry(entry.id, { macro: value, amount: reverseFoodAmount(value, food) });
+  };
+  const actualTotal = entries.reduce((sum, entry) => {
+    const food = foods.find((item) => item.id === entry.foodId);
+    return sum + computeFoodMacro(entry.amount, food);
+  }, 0);
+  const hasTarget = Number.isFinite(target);
+  const gap = hasTarget ? target - actualTotal : null;
+  const gapText = !hasTarget
+    ? '暂无配额'
+    : Math.abs(gap) < 0.5
+      ? '已达标'
+      : gap > 0
+        ? `还差 ${Math.round(gap)} g`
+        : `超出 ${Math.round(Math.abs(gap))} g`;
+  return (
+    <div className="meal-food-cell">
+      <b>{macroType}{!disabled && hasTarget ? ` · 目标 ${Math.round(target)} g` : ''}</b>
+      <strong>{disabled ? '不用吃' : hasTarget ? `${Math.round(actualTotal)} g` : '暂无配额'}</strong>
+      {!disabled && (
+        <>
+          <span className={gap && gap < -0.5 ? 'macro-gap over' : 'macro-gap'}>{gapText}</span>
+          <datalist id={listId}>
+            {foods.map((item) => <option value={foodOptionLabel(item)} key={item.id} />)}
+          </datalist>
+          <div className="food-splitter">
+            {entries.map((entry) => {
+              const food = foods.find((item) => item.id === entry.foodId);
+              const actual = computeFoodMacro(entry.amount, food);
+              return (
+                <div className="food-entry" key={entry.id}>
+                  <input
+                    className="food-search-input"
+                    list={listId}
+                    value={entry.foodQuery}
+                    onChange={(event) => applyFoodQuery(entry, event.target.value)}
+                    onBlur={(event) => applyFoodQuery(entry, event.target.value, true)}
+                    placeholder="搜索食物"
+                  />
+                  <label className="food-entry-field">
+                    <span>食物重量</span>
+                    <input inputMode="decimal" value={entry.amount} onChange={(event) => applyAmount(entry, event.target.value, food)} placeholder="吃多少" />
+                    <i>{food ? foodInputUnit(food) : '-'}</i>
+                  </label>
+                  <label className="food-entry-field">
+                    <span>实际{macroType}</span>
+                    <input inputMode="decimal" value={entry.macro} onChange={(event) => applyMacro(entry, event.target.value, food)} placeholder={macroType} />
+                    <i>g</i>
+                  </label>
+                  <em>{Math.round(actual)} g</em>
+                  <button type="button" onClick={() => removeEntry(entry.id)} aria-label="移除食物">×</button>
+                </div>
+              );
+            })}
+          </div>
+          <button className="food-add" type="button" onClick={addEntry}>添加食物</button>
+        </>
+      )}
+      {options?.length > 0 && <small>{options.slice(0, 2).join('；')}</small>}
+    </div>
+  );
 }
 
 function TrainingCourse({ query }) {
@@ -879,13 +1380,12 @@ function FoodCalculator() {
   const [foodId, setFoodId] = useState(data.foods[0]?.id);
   const [target, setTarget] = useState('50');
   const food = data.foods.find((item) => item.id === foodId) || data.foods[0];
-  const rate = Number.parseFloat(food?.rate);
-  const grams = rate ? Math.round(Number(target || 0) / rate) : null;
+  const amount = convertFoodWeight(Number(target || 0), food);
   return (
     <div className="tool-grid">
       <Field label="选择食物"><select value={foodId} onChange={(event) => setFoodId(event.target.value)}>{data.foods.map((item) => <option key={item.id} value={item.id}>{item.macroType} · {item.name}</option>)}</select></Field>
       <Field label={`目标${food?.macroType || ''}克数`}><input value={target} onChange={(event) => setTarget(event.target.value)} /></Field>
-      <div className="calc-result inline"><strong>{grams ? `${grams} g` : '无法换算'}</strong><span>{food?.name} · 营养率 {food?.rate} · {formatSources(food?.sourceRefs)}</span></div>
+      <div className="calc-result inline"><strong>{amount ? `${amount.value} ${amount.unit}` : '无法换算'}</strong><span>{food?.name} · 营养率 {food?.rate} · {formatSources(food?.sourceRefs)}</span></div>
     </div>
   );
 }
