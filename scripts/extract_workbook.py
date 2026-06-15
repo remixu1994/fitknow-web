@@ -208,8 +208,6 @@ def parse_meal_table(ws, day_type: str, title: str, start_row: int, end_row: int
 
 
 def parse_diet_meal_tables(ws, goal: str) -> list[dict]:
-    if goal != "fat-loss":
-        return []
     tables = []
     markers = []
     for row in range(1, ws.max_row + 1):
@@ -225,7 +223,7 @@ def parse_diet_meal_tables(ws, goal: str) -> list[dict]:
         end_row = next_marker - 1
         for row in range(marker_row + 1, next_marker):
             text = " ".join(row_values(ws, row, min(ws.max_column, 19)))
-            if "训练计划" in text or "有氧方案" in text:
+            if "训练计划" in text or "力训方案" in text or "有氧方案" in text:
                 end_row = row - 1
                 break
         table = parse_meal_table(ws, day_type, title, marker_row, end_row)
@@ -241,7 +239,13 @@ def save_images(ws) -> list[dict]:
         ext = image_ext(data)
         filename = f"{slugify(ws.title)}-{idx:02d}{ext}"
         path = PUBLIC_ASSETS / filename
-        path.write_bytes(data)
+        tmp_path = path.with_name(f"{path.name}.tmp")
+        try:
+            tmp_path.write_bytes(data)
+            tmp_path.replace(path)
+        except PermissionError:
+            tmp_path.unlink(missing_ok=True)
+            pass
         row, col = image_anchor(img)
         assets.append(
             {
