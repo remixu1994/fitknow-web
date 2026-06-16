@@ -34,7 +34,6 @@
   --planner-bg: linear-gradient(180deg, #fbfdfb 0%, #ffffff 100%);
   --macro-article-bg: #fff;
   --lesson-block-bg: #fff;
-  --trace-box-bg: #fff;
   --image-card-btn-bg: #fff;
   --quick-action-bg: #fbfcfa;
 }
@@ -75,7 +74,6 @@
   --planner-bg: linear-gradient(180deg, #1a2119 0%, #1e2820 100%);
   --macro-article-bg: #1e2820;
   --lesson-block-bg: #1e2820;
-  --trace-box-bg: #1e2820;
   --image-card-btn-bg: #1e2820;
   --quick-action-bg: #1e2820;
 }
@@ -175,14 +173,31 @@ h1, h2, h3, p { margin-top: 0; }
   display: grid;
   gap: 5px;
 }
-.source-box span,
+.source-box a,
 .source-box small {
   color: var(--sidebar-box-text);
   overflow-wrap: anywhere;
   font-size: 12px;
 }
+.source-box a {
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
 
-.workspace { min-width: 0; }
+.workspace,
+.content-stack,
+.structured-meals,
+.meal-table-panel,
+.meal-card,
+.meal-card-title,
+.meal-macro-columns,
+.meal-food-cell,
+.food-splitter,
+.food-entry,
+.food-entry-field {
+  min-width: 0;
+}
 .topbar {
   position: sticky;
   top: 0;
@@ -368,13 +383,6 @@ main {
   margin-bottom: 8px;
   font-size: 24px;
 }
-.trace-box {
-  margin-top: 16px;
-  padding: 14px;
-  border: 1px solid var(--line-strong);
-  border-radius: 8px;
-  background: #fff;
-}
 .source-list {
   display: grid;
   gap: 8px;
@@ -387,8 +395,7 @@ main {
   border-bottom: 1px solid var(--line);
 }
 .source-list span,
-.result-row span,
-.sheet-card span {
+.result-row span {
   color: var(--accent);
   font-size: 12px;
   font-weight: 800;
@@ -509,6 +516,45 @@ main {
   padding-top: 16px;
   border-top: 1px solid var(--line);
 }
+.download-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfa;
+}
+.download-card h3 {
+  margin-bottom: 8px;
+}
+.download-card p {
+  color: var(--muted);
+}
+.download-card small {
+  color: var(--accent-strong);
+  font-weight: 700;
+}
+.primary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 800;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.training-mode-selector {
+  margin: 0 0 16px;
+  padding: 0 0 16px;
+  border-top: 0;
+  border-bottom: 1px solid var(--line);
+}
 .quota-box {
   margin-top: 14px;
   padding: 16px;
@@ -582,6 +628,15 @@ main {
   display: flex;
   gap: 10px;
   align-items: flex-start;
+  min-width: 0;
+  cursor: pointer;
+  list-style: none;
+}
+.meal-card-title::-webkit-details-marker {
+  display: none;
+}
+.meal-card[open] .meal-card-title {
+  margin-bottom: 12px;
 }
 .meal-card-title > span {
   width: 28px;
@@ -597,6 +652,7 @@ main {
 .meal-card h4 {
   margin: 0 0 2px;
   font-size: 17px;
+  overflow-wrap: anywhere;
 }
 .meal-card-title p,
 .meal-food-cell span,
@@ -623,6 +679,7 @@ main {
 .meal-food-cell b {
   color: var(--accent-strong);
   font-size: 13px;
+  overflow-wrap: anywhere;
 }
 .meal-food-cell strong {
   color: var(--orange);
@@ -675,6 +732,8 @@ main {
   border-radius: 8px;
   background: #fbfcfa;
   padding: 8px 9px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .food-entry .food-search-input {
   grid-column: 1 / 3;
@@ -771,8 +830,7 @@ main {
 }
 .info-tile,
 .food-card,
-.qa-item,
-.sheet-card {
+.qa-item {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #fbfcfa;
@@ -784,6 +842,38 @@ main {
 }
 .info-tile b {
   color: var(--accent-strong);
+}
+.training-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.training-info-tile {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfa;
+}
+.training-info-tile b {
+  color: var(--accent-strong);
+}
+.training-info-tile span {
+  color: var(--muted);
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+.training-day-note {
+  margin: 12px 0 0;
+  padding: 12px 14px;
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  background: var(--accent-soft);
+  color: var(--ink);
+  overflow-wrap: anywhere;
 }
 .sub-panel {
   min-width: 0;
@@ -798,24 +888,18 @@ main {
   display: grid;
   gap: 8px;
 }
-.meal-list p,
-.raw-list p {
+.meal-list p {
   margin: 0;
   padding: 9px 0;
   border-bottom: 1px solid var(--line);
   overflow-wrap: anywhere;
 }
-.meal-list span,
-.raw-list span {
+.meal-list span {
   color: var(--orange);
   font-weight: 800;
   margin-right: 8px;
 }
 
-.source-details {
-  margin-top: 16px;
-}
-.source-details summary,
 .lesson-block summary,
 .qa-item summary,
 .food-card summary {
@@ -823,11 +907,6 @@ main {
   font-weight: 800;
   color: var(--accent-strong);
 }
-.raw-list {
-  max-height: 520px;
-  overflow: auto;
-}
-
 .lesson-block {
   margin-top: 14px;
   border: 1px solid var(--line);
@@ -855,11 +934,14 @@ table {
 }
 th,
 td {
+  max-width: 25%;
   padding: 9px 10px;
   border-bottom: 1px solid var(--line);
   text-align: left;
   vertical-align: top;
   overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: normal;
 }
 th {
   background: #edf6f0;
@@ -867,6 +949,44 @@ th {
 }
 tr:hover td {
   background: #fbfcfa;
+}
+.training-info-table th {
+  width: 136px;
+  text-align: center;
+  vertical-align: middle;
+  color: var(--ink);
+}
+.training-info-table td {
+  white-space: pre-line;
+}
+.training-day-table th,
+.training-day-table td {
+  border-right: 1px solid var(--line);
+}
+.training-day-table th:last-child,
+.training-day-table td:last-child {
+  border-right: 0;
+}
+.training-day-table thead th,
+.training-day-intro,
+.training-group-cell {
+  text-align: center;
+  vertical-align: middle;
+}
+.training-day-title {
+  font-size: 17px;
+  color: var(--ink);
+}
+.training-day-intro {
+  background: #f6fbf8;
+  color: var(--ink);
+}
+.training-group-cell {
+  font-weight: 800;
+  color: var(--ink);
+}
+.training-day-table td {
+  white-space: pre-line;
 }
 
 .tool-panel { min-width: 0; }
@@ -900,7 +1020,6 @@ tr:hover td {
 }
 
 .food-grid,
-.sheet-grid,
 .image-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -959,40 +1078,6 @@ tr:hover td {
 .result-row small {
   color: var(--muted);
   text-align: right;
-}
-
-.source-pills {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 7px;
-  margin: 8px 0 14px;
-}
-.source-pills span {
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: #fff;
-  color: var(--accent-strong);
-  padding: 4px 8px;
-  font-size: 12px;
-  font-weight: 750;
-}
-
-.sheet-card {
-  display: grid;
-  gap: 5px;
-  padding: 14px;
-  text-align: left;
-  cursor: pointer;
-}
-.sheet-card.selected {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-}
-.sheet-card b {
-  font-size: 16px;
-}
-.sheet-card small {
-  color: var(--muted);
 }
 
 .image-card {
@@ -1093,7 +1178,8 @@ tr:hover td {
   .hero-panel,
   .split-grid,
   .quota-box,
-  .meal-table-head {
+  .meal-table-head,
+  .training-info-grid {
     grid-template-columns: 1fr;
   }
   .meal-card {
@@ -1109,6 +1195,28 @@ tr:hover td {
   .topbar {
     padding-left: 16px;
     padding-right: 16px;
+  }
+  main {
+    padding-top: 18px;
+    padding-bottom: 32px;
+  }
+  .topbar {
+    gap: 12px;
+    align-items: start;
+    padding-top: 16px;
+    padding-bottom: 14px;
+  }
+  .kicker {
+    margin-bottom: 2px;
+    font-size: 13px;
+    line-height: 1.35;
+  }
+  .search {
+    gap: 5px;
+    font-size: 13px;
+  }
+  .search span {
+    line-height: 1.3;
   }
   .nav-list,
   .lesson-grid,
@@ -1126,6 +1234,83 @@ tr:hover td {
   .panel,
   .module-rail {
     padding: 16px;
+  }
+  .planner-panel {
+    margin: 12px 0 18px;
+    padding: 14px;
+  }
+  .planner-head {
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .planner-head h3 {
+    font-size: 19px;
+  }
+  .profile-form,
+  .metric-strip,
+  .macro-grid,
+  .structured-meals {
+    gap: 10px;
+  }
+  .meal-table-panel {
+    padding: 12px;
+  }
+  .meal-table-head {
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .meal-table-head h3 {
+    font-size: 18px;
+    line-height: 1.25;
+  }
+  .meal-table-totals .stat {
+    padding: 12px;
+  }
+  .meal-card-grid {
+    gap: 10px;
+  }
+  .meal-card {
+    padding: 12px;
+    gap: 12px;
+  }
+  .meal-card-title {
+    gap: 8px;
+    align-items: center;
+  }
+  .meal-card-title > span {
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+  }
+  .meal-card h4 {
+    font-size: 16px;
+    line-height: 1.25;
+  }
+  .meal-card-title p,
+  .meal-food-cell span,
+  .meal-food-cell small,
+  .meal-guidance p {
+    font-size: 12px;
+    line-height: 1.45;
+  }
+  .meal-food-cell {
+    padding: 11px;
+    gap: 6px;
+  }
+  .meal-food-cell strong {
+    font-size: 30px;
+  }
+  .food-entry {
+    gap: 8px;
+    padding: 9px;
+  }
+  .food-search-input {
+    min-height: 44px;
+    padding: 9px 10px;
+  }
+  .food-add {
+    min-height: 44px;
+    padding: 9px 12px;
   }
   .hero-panel h2 {
     font-size: 27px;
@@ -1166,16 +1351,14 @@ tr:hover td {
     min-height: 48px;
     min-width: 48px;
   }
-  .sheet-card {
-    min-height: 48px;
-    min-width: 48px;
-  }
   .lesson-block summary {
     min-height: 48px;
     min-width: 48px;
   }
   .search input {
     min-height: 48px;
+    padding-top: 10px;
+    padding-bottom: 10px;
   }
   /* Font readability - mobile */
   .field,
@@ -1186,9 +1369,6 @@ tr:hover td {
   .panel-title p {
     font-size: 14px;
   }
-  .source-pills span {
-    font-size: 13px;
-  }
   input, select, textarea {
     font-size: 16px !important; /* prevent iOS auto-zoom */
   }
@@ -1198,6 +1378,7 @@ tr:hover td {
   }
   h1 {
     font-size: 24px;
+    line-height: 1.18;
   }
 }
 
@@ -1291,18 +1472,109 @@ main > * {
 @media (max-width: 640px) { .meal-header, .meal-row { grid-template-columns: 80px 1fr 1fr 1fr; font-size: 12px; padding: 8px 10px; } }
 
 @media (max-width: 480px) {
+  main,
+  .topbar {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+  main {
+    padding-top: 14px;
+  }
+  .topbar {
+    padding-top: 14px;
+    padding-bottom: 12px;
+  }
+  .sidebar {
+    padding: 16px 12px;
+    gap: 14px;
+  }
+  .brand-mark {
+    width: 38px;
+    height: 38px;
+  }
+  .nav-list {
+    gap: 5px;
+  }
+  .nav-list a {
+    gap: 8px;
+    padding: 10px;
+  }
+  .nav-list a span {
+    width: 26px;
+    height: 24px;
+  }
+  .content-stack {
+    gap: 14px;
+  }
+  .hero-panel,
+  .panel,
+  .module-rail {
+    padding: 14px;
+  }
+  .panel-title {
+    margin-bottom: 12px;
+  }
+  .panel-title h2 {
+    font-size: 20px;
+  }
+  .planner-panel {
+    padding: 12px;
+    border-color: var(--line);
+  }
+  .advice-box,
+  .quota-box {
+    padding: 12px;
+  }
+  .meal-table-panel {
+    padding: 10px;
+    border-color: var(--line);
+  }
+  .meal-card {
+    padding: 10px;
+  }
+  .meal-card-title {
+    align-items: flex-start;
+  }
+  .meal-macro-columns {
+    gap: 10px;
+  }
+  .meal-food-cell {
+    padding: 10px;
+  }
+  .meal-food-cell strong {
+    font-size: 28px;
+  }
   .food-entry {
-    grid-template-columns: minmax(0, 1fr) 28px;
+    position: relative;
+    grid-template-columns: minmax(0, 1fr);
   }
   .food-entry .food-search-input {
-    grid-column: 1 / 2;
+    grid-column: 1 / -1;
+    padding-right: 44px;
   }
   .food-entry-field:nth-of-type(1),
   .food-entry-field:nth-of-type(2) {
     grid-column: 1 / -1;
   }
+  .food-entry-field > span {
+    padding-top: 6px;
+  }
+  .food-entry-field input {
+    padding-top: 2px;
+    padding-bottom: 8px;
+  }
   .food-entry em {
     grid-column: 1 / 2;
     text-align: left;
+  }
+  .food-entry button {
+    position: absolute;
+    top: 9px;
+    right: 9px;
+    grid-column: auto;
+    grid-row: auto;
+    width: 32px;
+    height: 32px;
+    padding: 0;
   }
 }

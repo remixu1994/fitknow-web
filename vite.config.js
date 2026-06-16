@@ -11,7 +11,7 @@ export default defineConfig({
       manifest: {
         name: 'FitKnow 健身知识库',
         short_name: 'FitKnow',
-        description: '把健身 Excel 变成可学习、可搜索、可追溯的课程工作台',
+        description: '按目标学习饮食、训练、工具和动作知识',
         theme_color: '#16724f',
         background_color: '#ffffff',
         display: 'standalone',
@@ -26,8 +26,30 @@ export default defineConfig({
         ]
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,json}'],
-        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024
+        globPatterns: [
+          'index.html',
+          'registerSW.js',
+          'manifest.webmanifest',
+          'pwa-icon.svg',
+          'assets/index-*.{js,css}'
+        ],
+        runtimeCaching: [
+          {
+            urlPattern: ({ url }) => url.pathname.startsWith('/generated/assets/'),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'fitknow-generated-assets',
+              expiration: {
+                maxEntries: 48,
+                maxAgeSeconds: 30 * 24 * 60 * 60
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
+          }
+        ],
+        maximumFileSizeToCacheInBytes: 512 * 1024
       }
     })
   ]

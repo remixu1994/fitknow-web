@@ -640,7 +640,7 @@ def main() -> None:
         "anatomy": parse_anatomy(wb),
         "rawSheets": raw_sheets,
     }
-    (DATA_DIR / "workbook.json").write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    write_generated_data(data)
     print(json.dumps({
         "sheets": len(sheets),
         "dietPlans": len(diet_plans),
@@ -650,6 +650,80 @@ def main() -> None:
         "cardio": len(data["cardio"]),
         "images": sum(len(g["images"]) for g in data["anatomy"]["imageGalleries"]),
     }, ensure_ascii=False))
+
+
+def write_json(path: Path, payload) -> None:
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def build_dashboard_search(data: dict) -> dict:
+    return {
+        "dietPlans": [
+            {
+                "goal": item["goal"],
+                "title": item["title"],
+                "timing": item["timing"],
+                "summary": item.get("summary", ""),
+                "sourceRefs": item.get("sourceRefs", []),
+            }
+            for item in data["dietPlans"]
+        ],
+        "trainingPlans": [
+            {
+                "title": plan["title"],
+                "environment": plan["environment"],
+                "splitType": plan["splitType"],
+                "sourceRefs": plan.get("sourceRefs", []),
+                "days": [
+                    {
+                        "title": day["title"],
+                        "rationale": day.get("rationale", ""),
+                        "rows": [
+                            {
+                                "muscleGroup": row.get("muscleGroup", ""),
+                                "setGuidance": row.get("setGuidance", ""),
+                                "exercise": row.get("exercise", ""),
+                                "shoulderJoint": row.get("shoulderJoint", ""),
+                                "elbowJoint": row.get("elbowJoint", ""),
+                            }
+                            for row in day.get("rows", [])
+                        ],
+                    }
+                    for day in plan.get("days", [])
+                ],
+            }
+            for plan in data["trainingPlans"]
+        ],
+        "foods": data["foods"],
+        "qa": data["qa"],
+    }
+
+
+def write_generated_data(data: dict) -> None:
+    write_json(DATA_DIR / "workbook.json", data)
+    write_json(DATA_DIR / "core.json", {
+        "generatedAt": data["generatedAt"],
+        "source": data["source"],
+        "sheets": data["sheets"],
+        "modules": data["modules"],
+        "sheetCategories": data["sheetCategories"],
+        "counts": {
+            "dietPlans": len(data["dietPlans"]),
+            "trainingPlans": len(data["trainingPlans"]),
+            "foods": len(data["foods"]),
+            "qa": len(data["qa"]),
+        },
+    })
+    write_json(DATA_DIR / "diet.json", {"dietPlans": data["dietPlans"]})
+    write_json(DATA_DIR / "fat-loss.json", {"dietPlans": [item for item in data["dietPlans"] if item["goal"] == "fat-loss"]})
+    write_json(DATA_DIR / "muscle-gain.json", {"dietPlans": [item for item in data["dietPlans"] if item["goal"] == "muscle-gain"]})
+    write_json(DATA_DIR / "foods.json", {"foods": data["foods"]})
+    write_json(DATA_DIR / "qa.json", {"qa": data["qa"]})
+    write_json(DATA_DIR / "training.json", {"trainingPlans": data["trainingPlans"]})
+    write_json(DATA_DIR / "tools.json", {"cardio": data["cardio"], "oneRepMax": data["oneRepMax"]})
+    write_json(DATA_DIR / "anatomy.json", {"anatomy": data["anatomy"]})
+    write_json(DATA_DIR / "source.json", {"rawSheets": data["rawSheets"]})
+    write_json(DATA_DIR / "dashboard-search.json", build_dashboard_search(data))
 
 
 if __name__ == "__main__":

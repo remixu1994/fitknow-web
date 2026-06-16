@@ -1,0 +1,481 @@
+{
+  "generatedAt": "2026-06-15T23:06:32",
+  "source": "【可任意分享】健身Excel超级套表（作者：B站好人松松）26年4月最新版.xlsx",
+  "sheets": [
+    {
+      "index": 1,
+      "title": "【必读】总目录",
+      "rows": 38,
+      "cols": 14
+    },
+    {
+      "index": 2,
+      "title": "1减脂-早饭后练（早起版）",
+      "rows": 109,
+      "cols": 20
+    },
+    {
+      "index": 3,
+      "title": "2减脂-早饭后练（晚起版）",
+      "rows": 105,
+      "cols": 19
+    },
+    {
+      "index": 4,
+      "title": "3减脂-午饭前练",
+      "rows": 104,
+      "cols": 19
+    },
+    {
+      "index": 5,
+      "title": "4减脂-午饭后练",
+      "rows": 104,
+      "cols": 19
+    },
+    {
+      "index": 6,
+      "title": "5减脂-晚饭前练",
+      "rows": 104,
+      "cols": 22
+    },
+    {
+      "index": 7,
+      "title": "6减脂-晚饭后练",
+      "rows": 104,
+      "cols": 19
+    },
+    {
+      "index": 8,
+      "title": "7减脂-夜里练",
+      "rows": 104,
+      "cols": 19
+    },
+    {
+      "index": 9,
+      "title": "8减脂-无力训者",
+      "rows": 57,
+      "cols": 21
+    },
+    {
+      "index": 10,
+      "title": "9增肌-早饭后练（早起版）",
+      "rows": 98,
+      "cols": 19
+    },
+    {
+      "index": 11,
+      "title": "10增肌-早饭后练（晚起版）",
+      "rows": 92,
+      "cols": 19
+    },
+    {
+      "index": 12,
+      "title": "11增肌-午饭前练",
+      "rows": 98,
+      "cols": 19
+    },
+    {
+      "index": 13,
+      "title": "12增肌-午饭后练",
+      "rows": 98,
+      "cols": 19
+    },
+    {
+      "index": 14,
+      "title": "13增肌-晚饭前练",
+      "rows": 97,
+      "cols": 19
+    },
+    {
+      "index": 15,
+      "title": "14增肌-晚饭后练",
+      "rows": 98,
+      "cols": 19
+    },
+    {
+      "index": 16,
+      "title": "15增肌-夜里练",
+      "rows": 98,
+      "cols": 19
+    },
+    {
+      "index": 17,
+      "title": "16有氧热量消耗",
+      "rows": 148,
+      "cols": 21
+    },
+    {
+      "index": 18,
+      "title": "17减脂-问答汇总",
+      "rows": 109,
+      "cols": 3
+    },
+    {
+      "index": 19,
+      "title": "18增肌-问答汇总",
+      "rows": 75,
+      "cols": 3
+    },
+    {
+      "index": 20,
+      "title": "19日常食物营养率",
+      "rows": 133,
+      "cols": 12
+    },
+    {
+      "index": 21,
+      "title": "20训练计划-健身房三分化",
+      "rows": 82,
+      "cols": 7
+    },
+    {
+      "index": 22,
+      "title": "21训练计划-健身房四分化计划（肩单练版）",
+      "rows": 87,
+      "cols": 7
+    },
+    {
+      "index": 23,
+      "title": "22训练计划-健身房四分化计划（手臂单练版）",
+      "rows": 87,
+      "cols": 7
+    },
+    {
+      "index": 24,
+      "title": "23训练计划-居家健身",
+      "rows": 76,
+      "cols": 7
+    },
+    {
+      "index": 25,
+      "title": "24最大力量预测公式",
+      "rows": 15,
+      "cols": 7
+    },
+    {
+      "index": 26,
+      "title": "25上身肌肉拉伸",
+      "rows": 221,
+      "cols": 1
+    },
+    {
+      "index": 27,
+      "title": "26下身肌肉拉伸",
+      "rows": 87,
+      "cols": 1
+    },
+    {
+      "index": 28,
+      "title": "27健身解剖总结（文字版）",
+      "rows": 126,
+      "cols": 15
+    },
+    {
+      "index": 29,
+      "title": "28关节活动的肌肉（图示版）",
+      "rows": 35,
+      "cols": 7
+    },
+    {
+      "index": 30,
+      "title": "29肌肉的关节活动（图示版）",
+      "rows": 31,
+      "cols": 7
+    }
+  ],
+  "modules": [
+    {
+      "id": "dashboard",
+      "label": "总览",
+      "description": "按目标学习整本健身 Excel。"
+    },
+    {
+      "id": "fat-loss",
+      "label": "减脂饮食",
+      "description": "不同训练时间的减脂饮食方案。"
+    },
+    {
+      "id": "muscle-gain",
+      "label": "增肌饮食",
+      "description": "不同训练时间的增肌饮食方案。"
+    },
+    {
+      "id": "training",
+      "label": "训练计划",
+      "description": "健身房和居家分化训练安排。"
+    },
+    {
+      "id": "tools",
+      "label": "热量工具",
+      "description": "有氧消耗、1RM 和食物重量换算。"
+    },
+    {
+      "id": "foods",
+      "label": "食物营养",
+      "description": "日常碳水和蛋白质营养率。"
+    },
+    {
+      "id": "qa",
+      "label": "问答库",
+      "description": "减脂与增肌执行问题。"
+    },
+    {
+      "id": "anatomy",
+      "label": "拉伸解剖",
+      "description": "拉伸图谱、关节活动与肌肉关系。"
+    },
+    {
+      "id": "source",
+      "label": "原表索引",
+      "description": "30 个 sheet 的分类地图和原始行。"
+    }
+  ],
+  "sheetCategories": [
+    {
+      "index": 1,
+      "title": "【必读】总目录",
+      "displayTitle": "【必读】总目录",
+      "moduleId": "dashboard",
+      "rows": 38,
+      "cols": 14
+    },
+    {
+      "index": 2,
+      "title": "1减脂-早饭后练（早起版）",
+      "displayTitle": "减脂-早饭后练（早起版）",
+      "moduleId": "fat-loss",
+      "rows": 109,
+      "cols": 20
+    },
+    {
+      "index": 3,
+      "title": "2减脂-早饭后练（晚起版）",
+      "displayTitle": "减脂-早饭后练（晚起版）",
+      "moduleId": "fat-loss",
+      "rows": 105,
+      "cols": 19
+    },
+    {
+      "index": 4,
+      "title": "3减脂-午饭前练",
+      "displayTitle": "减脂-午饭前练",
+      "moduleId": "fat-loss",
+      "rows": 104,
+      "cols": 19
+    },
+    {
+      "index": 5,
+      "title": "4减脂-午饭后练",
+      "displayTitle": "减脂-午饭后练",
+      "moduleId": "fat-loss",
+      "rows": 104,
+      "cols": 19
+    },
+    {
+      "index": 6,
+      "title": "5减脂-晚饭前练",
+      "displayTitle": "减脂-晚饭前练",
+      "moduleId": "fat-loss",
+      "rows": 104,
+      "cols": 22
+    },
+    {
+      "index": 7,
+      "title": "6减脂-晚饭后练",
+      "displayTitle": "减脂-晚饭后练",
+      "moduleId": "fat-loss",
+      "rows": 104,
+      "cols": 19
+    },
+    {
+      "index": 8,
+      "title": "7减脂-夜里练",
+      "displayTitle": "减脂-夜里练",
+      "moduleId": "fat-loss",
+      "rows": 104,
+      "cols": 19
+    },
+    {
+      "index": 9,
+      "title": "8减脂-无力训者",
+      "displayTitle": "减脂-无力训者",
+      "moduleId": "fat-loss",
+      "rows": 57,
+      "cols": 21
+    },
+    {
+      "index": 10,
+      "title": "9增肌-早饭后练（早起版）",
+      "displayTitle": "增肌-早饭后练（早起版）",
+      "moduleId": "muscle-gain",
+      "rows": 98,
+      "cols": 19
+    },
+    {
+      "index": 11,
+      "title": "10增肌-早饭后练（晚起版）",
+      "displayTitle": "增肌-早饭后练（晚起版）",
+      "moduleId": "muscle-gain",
+      "rows": 92,
+      "cols": 19
+    },
+    {
+      "index": 12,
+      "title": "11增肌-午饭前练",
+      "displayTitle": "增肌-午饭前练",
+      "moduleId": "muscle-gain",
+      "rows": 98,
+      "cols": 19
+    },
+    {
+      "index": 13,
+      "title": "12增肌-午饭后练",
+      "displayTitle": "增肌-午饭后练",
+      "moduleId": "muscle-gain",
+      "rows": 98,
+      "cols": 19
+    },
+    {
+      "index": 14,
+      "title": "13增肌-晚饭前练",
+      "displayTitle": "增肌-晚饭前练",
+      "moduleId": "muscle-gain",
+      "rows": 97,
+      "cols": 19
+    },
+    {
+      "index": 15,
+      "title": "14增肌-晚饭后练",
+      "displayTitle": "增肌-晚饭后练",
+      "moduleId": "muscle-gain",
+      "rows": 98,
+      "cols": 19
+    },
+    {
+      "index": 16,
+      "title": "15增肌-夜里练",
+      "displayTitle": "增肌-夜里练",
+      "moduleId": "muscle-gain",
+      "rows": 98,
+      "cols": 19
+    },
+    {
+      "index": 17,
+      "title": "16有氧热量消耗",
+      "displayTitle": "有氧热量消耗",
+      "moduleId": "tools",
+      "rows": 148,
+      "cols": 21
+    },
+    {
+      "index": 18,
+      "title": "17减脂-问答汇总",
+      "displayTitle": "减脂-问答汇总",
+      "moduleId": "qa",
+      "rows": 109,
+      "cols": 3
+    },
+    {
+      "index": 19,
+      "title": "18增肌-问答汇总",
+      "displayTitle": "增肌-问答汇总",
+      "moduleId": "qa",
+      "rows": 75,
+      "cols": 3
+    },
+    {
+      "index": 20,
+      "title": "19日常食物营养率",
+      "displayTitle": "日常食物营养率",
+      "moduleId": "foods",
+      "rows": 133,
+      "cols": 12
+    },
+    {
+      "index": 21,
+      "title": "20训练计划-健身房三分化",
+      "displayTitle": "训练计划-健身房三分化",
+      "moduleId": "training",
+      "rows": 82,
+      "cols": 7
+    },
+    {
+      "index": 22,
+      "title": "21训练计划-健身房四分化计划（肩单练版）",
+      "displayTitle": "训练计划-健身房四分化计划（肩单练版）",
+      "moduleId": "training",
+      "rows": 87,
+      "cols": 7
+    },
+    {
+      "index": 23,
+      "title": "22训练计划-健身房四分化计划（手臂单练版）",
+      "displayTitle": "训练计划-健身房四分化计划（手臂单练版）",
+      "moduleId": "training",
+      "rows": 87,
+      "cols": 7
+    },
+    {
+      "index": 24,
+      "title": "23训练计划-居家健身",
+      "displayTitle": "训练计划-居家健身",
+      "moduleId": "training",
+      "rows": 76,
+      "cols": 7
+    },
+    {
+      "index": 25,
+      "title": "24最大力量预测公式",
+      "displayTitle": "最大力量预测公式",
+      "moduleId": "tools",
+      "rows": 15,
+      "cols": 7
+    },
+    {
+      "index": 26,
+      "title": "25上身肌肉拉伸",
+      "displayTitle": "上身肌肉拉伸",
+      "moduleId": "anatomy",
+      "rows": 221,
+      "cols": 1
+    },
+    {
+      "index": 27,
+      "title": "26下身肌肉拉伸",
+      "displayTitle": "下身肌肉拉伸",
+      "moduleId": "anatomy",
+      "rows": 87,
+      "cols": 1
+    },
+    {
+      "index": 28,
+      "title": "27健身解剖总结（文字版）",
+      "displayTitle": "健身解剖总结（文字版）",
+      "moduleId": "anatomy",
+      "rows": 126,
+      "cols": 15
+    },
+    {
+      "index": 29,
+      "title": "28关节活动的肌肉（图示版）",
+      "displayTitle": "关节活动的肌肉（图示版）",
+      "moduleId": "anatomy",
+      "rows": 35,
+      "cols": 7
+    },
+    {
+      "index": 30,
+      "title": "29肌肉的关节活动（图示版）",
+      "displayTitle": "肌肉的关节活动（图示版）",
+      "moduleId": "anatomy",
+      "rows": 31,
+      "cols": 7
+    }
+  ],
+  "counts": {
+    "dietPlans": 15,
+    "trainingPlans": 4,
+    "foods": 102,
+    "qa": 57
+  }
+}

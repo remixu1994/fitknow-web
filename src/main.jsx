@@ -1,6 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import data from './data/generated/workbook.json';
 import './styles.css';
 import ErrorBoundary from './components/ErrorBoundary';
 
@@ -13,11 +12,14 @@ const routes = [
   { id: 'foods', hash: '#/foods', label: '食物营养', mark: '06' },
   { id: 'qa', hash: '#/qa', label: '问答库', mark: '07' },
   { id: 'anatomy', hash: '#/anatomy', label: '拉伸解剖', mark: '08' },
-  { id: 'source', hash: '#/source', label: '原表索引', mark: '09' },
+  { id: 'source', hash: '#/source', label: '资料下载', mark: '09' },
 ];
 
-// 好人松松 碳水/蛋白质/脂肪 比例表（g/kg体重）
-// 格式：{weight: {height: [carbs, protein, fat]}}
+const excelDownloadPath = '/generated/assets/【可任意分享】健身Excel超级套表（作者：B站好人松松）26年4月最新版.xlsx';
+
+// 好人松松男性配额表（g/kg体重）
+// 减脂格式：{weight: {height: [carbs, protein, fat]}}
+// 增肌格式：{weight: {height: [trainingCarb, restCarb, protein]}}
 const maleFatLossRatios = {
   60: {160: [2.6, 2.0, 1.4]},
   65: {160: [2.6, 1.9, 1.4], 165: [2.6, 2.0, 1.4]},
@@ -42,11 +44,21 @@ const maleMuscleGainRatios = {
   60: {160: [3.7, 2.8, 1.6], 165: [3.8, 2.9, 1.6], 170: [3.9, 3.0, 1.7], 175: [4.0, 3.2, 1.7], 180: [4.1, 3.3, 1.8], 185: [4.2, 3.4, 1.8], 190: [4.4, 3.5, 1.9]},
   65: {160: [3.6, 2.8, 1.5], 165: [3.7, 2.9, 1.6], 170: [3.8, 3.0, 1.6], 175: [3.9, 3.1, 1.7], 180: [4.0, 3.2, 1.7], 185: [4.1, 3.3, 1.7], 190: [4.2, 3.4, 1.8]},
   70: {160: [3.5, 2.7, 1.5], 165: [3.6, 2.8, 1.5], 170: [3.7, 2.9, 1.6], 175: [3.8, 3.0, 1.6], 180: [3.8, 3.1, 1.6], 185: [3.9, 3.2, 1.7], 190: [4.0, 3.3, 1.8]},
-  75: {160: [3.5, 2.7, 1.5], 165: [3.5, 2.7, 1.5], 170: [3.6, 2.8, 1.5], 175: [3.7, 2.9, 1.6], 180: [3.8, 3.0, 1.6], 185: [3.8, 3.1, 1.6], 190: [3.9, 3.2, 1.7]},
-  80: {160: [3.4, 2.6, 1.4], 165: [3.5, 2.7, 1.5], 170: [3.5, 2.7, 1.5], 175: [3.6, 2.8, 1.5], 180: [3.7, 2.9, 1.6], 185: [3.7, 3.0, 1.6], 190: [3.8, 3.1, 1.6]},
-  85: {160: [3.4, 2.6, 1.4], 165: [3.4, 2.6, 1.4], 170: [3.5, 2.7, 1.4], 175: [3.5, 2.7, 1.5], 180: [3.6, 2.8, 1.5], 185: [3.6, 2.9, 1.5], 190: [3.7, 3.0, 1.6]},
-  90: {160: [3.3, 2.5, 1.4], 165: [3.3, 2.5, 1.4], 170: [3.4, 2.6, 1.4], 175: [3.4, 2.6, 1.4], 180: [3.5, 2.7, 1.5], 185: [3.5, 2.8, 1.5], 190: [3.6, 2.9, 1.5]},
-  95: {160: [3.2, 2.5, 1.3], 165: [3.3, 2.5, 1.3], 170: [3.3, 2.5, 1.4], 175: [3.4, 2.6, 1.4], 180: [3.4, 2.7, 1.4], 185: [3.5, 2.7, 1.5], 190: [3.5, 2.8, 1.5]},
+  75: {170: [3.6, 2.9, 1.5], 175: [3.6, 2.9, 1.6], 180: [3.7, 3.0, 1.6], 185: [3.8, 3.1, 1.6], 190: [3.9, 3.2, 1.7]},
+  80: {175: [3.5, 2.9, 1.5], 180: [3.6, 3.0, 1.6], 185: [3.7, 3.1, 1.6], 190: [3.8, 3.1, 1.6]},
+  85: {180: [3.5, 2.9, 1.5], 185: [3.6, 3.0, 1.5], 190: [3.7, 3.0, 1.6]},
+  90: {185: [3.5, 2.9, 1.5], 190: [3.6, 3.0, 1.5]},
+};
+
+const femaleMuscleGainRatios = {
+  40: {150: [3.3, 2.5, 1.4], 155: [3.5, 2.7, 1.5], 160: [3.7, 2.9, 1.6], 165: [3.8, 3.0, 1.6], 170: [4.0, 3.2, 1.7], 175: [4.1, 3.4, 1.8], 180: [4.3, 3.5, 1.8]},
+  45: {150: [3.2, 2.5, 1.4], 155: [3.3, 2.6, 1.4], 160: [3.5, 2.8, 1.5], 165: [3.6, 2.9, 1.6], 170: [3.8, 3.1, 1.6], 175: [3.9, 3.2, 1.7], 180: [4.1, 3.4, 1.7]},
+  50: {150: [3.1, 2.4, 1.3], 155: [3.2, 2.6, 1.4], 160: [3.3, 2.7, 1.4], 165: [3.5, 2.8, 1.5], 170: [3.6, 3.0, 1.5], 175: [3.7, 3.1, 1.6], 180: [3.9, 3.2, 1.7]},
+  55: {150: [3.0, 2.4, 1.3], 155: [3.1, 2.5, 1.3], 160: [3.2, 2.7, 1.4], 165: [3.3, 2.8, 1.4], 170: [3.5, 2.9, 1.5], 175: [3.6, 3.0, 1.5], 180: [3.7, 3.1, 1.6]},
+  60: {160: [3.1, 2.6, 1.3], 165: [3.2, 2.7, 1.4], 170: [3.4, 2.8, 1.4], 175: [3.5, 2.9, 1.5], 180: [3.6, 3.0, 1.5]},
+  65: {165: [3.2, 2.7, 1.4], 170: [3.3, 2.8, 1.4], 175: [3.4, 2.9, 1.4], 180: [3.5, 3.0, 1.5]},
+  70: {170: [3.2, 2.7, 1.4], 175: [3.3, 2.8, 1.4], 180: [3.4, 2.9, 1.4]},
+  75: {175: [3.2, 2.8, 1.4], 180: [3.3, 2.9, 1.4]},
 };
 
 function lookupRatio(ratioTable, weight, height) {
@@ -65,6 +77,56 @@ function lookupRatio(ratioTable, weight, height) {
 
 const routeFromHash = () => (window.location.hash || '#/').replace('#/', '') || 'dashboard';
 
+const DataContext = createContext(null);
+
+function useAppData() {
+  const data = useContext(DataContext);
+  if (!data) {
+    throw new Error('FitKnow data has not loaded yet.');
+  }
+  return data;
+}
+
+const loadJson = (loader) => loader().then((module) => module.default);
+const coreLoader = () => loadJson(() => import('./data/generated/core.json'));
+const routeLoaders = {
+  dashboard: async ({ query }) => {
+    const [tools, dashboardSearch] = await Promise.all([
+      loadJson(() => import('./data/generated/tools.json')),
+      query.trim() ? loadJson(() => import('./data/generated/dashboard-search.json')) : Promise.resolve(null),
+    ]);
+    return dashboardSearch ? { ...tools, dashboardSearch } : tools;
+  },
+  'fat-loss': async () => {
+    const [diet, foods, qa] = await Promise.all([
+      loadJson(() => import('./data/generated/fat-loss.json')),
+      loadJson(() => import('./data/generated/foods.json')),
+      loadJson(() => import('./data/generated/qa.json')),
+    ]);
+    return { ...diet, ...foods, ...qa };
+  },
+  'muscle-gain': async () => {
+    const [diet, foods, qa] = await Promise.all([
+      loadJson(() => import('./data/generated/muscle-gain.json')),
+      loadJson(() => import('./data/generated/foods.json')),
+      loadJson(() => import('./data/generated/qa.json')),
+    ]);
+    return { ...diet, ...foods, ...qa };
+  },
+  training: () => loadJson(() => import('./data/generated/training.json')),
+  tools: async () => {
+    const [tools, foods] = await Promise.all([
+      loadJson(() => import('./data/generated/tools.json')),
+      loadJson(() => import('./data/generated/foods.json')),
+    ]);
+    return { ...tools, ...foods };
+  },
+  foods: () => loadJson(() => import('./data/generated/foods.json')),
+  qa: () => loadJson(() => import('./data/generated/qa.json')),
+  anatomy: () => loadJson(() => import('./data/generated/anatomy.json')),
+  source: () => loadJson(() => import('./data/generated/source.json')),
+};
+
 function NotFound() {
   return (
     <div className="not-found">
@@ -78,13 +140,13 @@ function NotFound() {
 const asText = (value) => String(value ?? '');
 const compact = (value, max = 128) => asText(value).replace(/\s+/g, ' ').slice(0, max);
 const matches = (item, query) => !query || JSON.stringify(item).toLowerCase().includes(query.toLowerCase());
-const moduleById = Object.fromEntries((data.modules || []).map((item) => [item.id, item]));
-const sheetByIndex = Object.fromEntries(data.sheets.map((sheet) => [sheet.index, sheet]));
-
 function App() {
   const [route, setRoute] = useState(routeFromHash());
   const [query, setQuery] = useState('');
   const [lightbox, setLightbox] = useState(null);
+  const [coreData, setCoreData] = useState(null);
+  const [routeData, setRouteData] = useState({ routeKey: null, queryKey: null, payload: {} });
+  const [isLoadingData, setIsLoadingData] = useState(true);
 
   useEffect(() => {
     const onHash = () => setRoute(routeFromHash());
@@ -98,31 +160,86 @@ function App() {
     return () => document.removeEventListener('keydown', onKey);
   }, []);
 
-  const active = routes.find((item) => item.id === route);
+  useEffect(() => {
+    let active = true;
+    coreLoader().then((data) => {
+      if (active) setCoreData(data);
+    }).catch((error) => {
+      console.error('Failed to load core data', error);
+      if (active) setCoreData({ loadError: error });
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
+  const active = routes.find((item) => item.id === route);
+  const routeKey = active?.id || 'dashboard';
+  const queryKey = routeKey === 'dashboard' ? query.trim() : '';
+
+  useEffect(() => {
+    let activeLoad = true;
+    const loader = routeLoaders[routeKey] || routeLoaders.dashboard;
+    setIsLoadingData(true);
+    loader({ query }).then((data) => {
+      if (!activeLoad) return;
+      setRouteData({ routeKey, queryKey, payload: data });
+      setIsLoadingData(false);
+    }).catch((error) => {
+      console.error('Failed to load route data', error);
+      if (!activeLoad) return;
+      setRouteData({ routeKey, queryKey, payload: { loadError: error } });
+      setIsLoadingData(false);
+    });
+    return () => {
+      activeLoad = false;
+    };
+  }, [routeKey, queryKey]);
+
+  if (!coreData || coreData.loadError) {
+    return <PageLoading text={coreData?.loadError ? '数据加载失败，请刷新重试。' : '正在加载 FitKnow 数据…'} />;
+  }
+
+  const hasCurrentRouteData = routeData.routeKey === routeKey && routeData.queryKey === queryKey;
+  const currentRouteData = hasCurrentRouteData ? routeData.payload : {};
+  const isRouteLoading = isLoadingData || !hasCurrentRouteData;
+  const data = { ...coreData, ...currentRouteData };
   if (!active) {
     return (
-      <Shell active={routes[0]} query={query} setQuery={setQuery}>
-        <NotFound />
-      </Shell>
+      <DataContext.Provider value={data}>
+        <Shell active={routes[0]} query={query} setQuery={setQuery}>
+          <NotFound />
+        </Shell>
+      </DataContext.Provider>
     );
   }
 
   return (
-    <>
+    <DataContext.Provider value={data}>
       <Shell active={active} query={query} setQuery={setQuery}>
-        {active.id === 'dashboard' && <Dashboard query={query} />}
-        {active.id === 'fat-loss' && <DietCourse goal="fat-loss" query={query} />}
-        {active.id === 'muscle-gain' && <DietCourse goal="muscle-gain" query={query} />}
-        {active.id === 'training' && <TrainingCourse query={query} />}
-        {active.id === 'tools' && <ToolsCourse />}
-        {active.id === 'foods' && <FoodsCourse query={query} />}
-        {active.id === 'qa' && <QaCourse query={query} />}
-        {active.id === 'anatomy' && <AnatomyCourse query={query} openLightbox={setLightbox} />}
-        {active.id === 'source' && <SourceIndex query={query} />}
+        {isRouteLoading && <PageLoading text="正在加载本页数据…" />}
+        {!isRouteLoading && currentRouteData.loadError && <Empty text="本页数据加载失败，请刷新重试。" />}
+        {!isRouteLoading && !currentRouteData.loadError && active.id === 'dashboard' && <Dashboard query={query} />}
+        {!isRouteLoading && !currentRouteData.loadError && active.id === 'fat-loss' && <DietCourse goal="fat-loss" query={query} />}
+        {!isRouteLoading && !currentRouteData.loadError && active.id === 'muscle-gain' && <DietCourse goal="muscle-gain" query={query} />}
+        {!isRouteLoading && !currentRouteData.loadError && active.id === 'training' && <TrainingCourse query={query} />}
+        {!isRouteLoading && !currentRouteData.loadError && active.id === 'tools' && <ToolsCourse />}
+        {!isRouteLoading && !currentRouteData.loadError && active.id === 'foods' && <FoodsCourse query={query} />}
+        {!isRouteLoading && !currentRouteData.loadError && active.id === 'qa' && <QaCourse query={query} />}
+        {!isRouteLoading && !currentRouteData.loadError && active.id === 'anatomy' && <AnatomyCourse query={query} openLightbox={setLightbox} />}
+        {!isRouteLoading && !currentRouteData.loadError && active.id === 'source' && <SourceIndex query={query} />}
       </Shell>
       {lightbox && <Lightbox image={lightbox} close={() => setLightbox(null)} />}
-    </>
+    </DataContext.Provider>
+  );
+}
+
+function PageLoading({ text }) {
+  return (
+    <div className="page-loading">
+      <div className="page-loading-spinner" aria-hidden="true" />
+      <p>{text}</p>
+    </div>
   );
 }
 
@@ -150,7 +267,7 @@ function Shell({ active, query, setQuery, children }) {
       <div className="workspace">
         <header className="topbar">
           <div>
-            <p className="kicker">来自 Sheet 1-29 · 原文保留 · 按目标学习</p>
+            <p className="kicker">饮食 · 训练 · 工具 · 问答</p>
             <h1>{active.label}</h1>
           </div>
           <label className="search">
@@ -165,20 +282,22 @@ function Shell({ active, query, setQuery, children }) {
 }
 
 function SourceSummary() {
+  const data = useAppData();
   return (
     <div className="source-box">
-      <b>数据源</b>
-      <span>{data.source}</span>
-      <small>{data.sheets.length} 张表 · {new Date(data.generatedAt).toLocaleString('zh-CN')}</small>
+      <b>资料下载</b>
+      <a href={excelDownloadPath} download>{data.source}</a>
+      <small>更新：{new Date(data.generatedAt).toLocaleString('zh-CN')}</small>
     </div>
   );
 }
 
 function Dashboard({ query }) {
+  const data = useAppData();
   const results = useSearchResults(query);
   const lessonCards = [
     { href: '#/fat-loss', title: '减脂饮食课', meta: '8 个时间方案', text: '先确定训练时间，再看力训日、休息日和调整规则。' },
-    { href: '#/muscle-gain', title: '增肌饮食课', meta: '7 个时间方案', text: '围绕练前练后安排碳水和蛋白质，保留原表细节。' },
+    { href: '#/muscle-gain', title: '增肌饮食课', meta: '7 个时间方案', text: '围绕练前练后安排碳水和蛋白质，形成清晰的一日饮食结构。' },
     { href: '#/training', title: '训练计划课', meta: '4 套分化计划', text: '按健身房/居家、三分化/四分化和 Day 进入动作表。' },
     { href: '#/anatomy', title: '拉伸解剖课', meta: '35 张图示', text: '把肌肉、关节活动和拉伸图谱放到同一条学习路径里。' },
   ];
@@ -189,19 +308,19 @@ function Dashboard({ query }) {
         <section className="hero-panel">
           <div>
             <p className="section-label">按目标学习</p>
-            <h2>把健身 Excel 变成可学习、可搜索、可追溯的课程工作台</h2>
-            <p>每个模块都从原始 sheet 抽取结构化内容，同时保留原表行号，适合新手按目标推进，也适合反复查询动作、食物和问题。</p>
+            <h2>按目标学习饮食、训练和动作知识</h2>
+            <p>把减脂、增肌、训练计划、食物营养和常见问题整理成可搜索的学习路径，方便按目标推进和反复查询。</p>
             <div className="quick-actions">
               <a href="#/fat-loss">开始减脂路径</a>
               <a href="#/training">选择训练计划</a>
-              <a href="#/source">查看原表索引</a>
+              <a href="#/source">下载资料</a>
             </div>
           </div>
           <div className="metric-grid">
-            <Stat value={data.dietPlans.length} label="饮食方案" />
-            <Stat value={data.trainingPlans.length} label="训练计划" />
-            <Stat value={data.foods.length} label="食物条目" />
-            <Stat value={data.qa.length} label="问答条目" />
+            <Stat value={data.counts?.dietPlans ?? '-'} label="饮食方案" />
+            <Stat value={data.counts?.trainingPlans ?? '-'} label="训练计划" />
+            <Stat value={data.counts?.foods ?? '-'} label="食物条目" />
+            <Stat value={data.counts?.qa ?? '-'} label="问答条目" />
           </div>
         </section>
 
@@ -233,35 +352,38 @@ function Dashboard({ query }) {
 }
 
 function useSearchResults(query) {
+  const data = useAppData();
   return useMemo(() => {
     if (!query.trim()) return [];
-    const diet = data.dietPlans.filter((item) => matches(item, query)).slice(0, 5).map((item) => ({
+    const search = data.dashboardSearch;
+    if (!search) return [];
+    const diet = search.dietPlans.filter((item) => matches(item, query)).slice(0, 5).map((item) => ({
       type: item.goal === 'fat-loss' ? '减脂饮食' : '增肌饮食',
       title: item.title,
       href: item.goal === 'fat-loss' ? '#/fat-loss' : '#/muscle-gain',
       sourceRefs: item.sourceRefs,
     }));
-    const training = data.trainingPlans.flatMap((plan) => plan.days.map((day) => ({ plan, day })))
+    const training = search.trainingPlans.flatMap((plan) => plan.days.map((day) => ({ plan, day })))
       .filter((item) => matches(item, query)).slice(0, 5).map((item) => ({
         type: '训练计划',
         title: `${item.plan.title} · ${item.day.title}`,
         href: '#/training',
         sourceRefs: item.plan.sourceRefs,
       }));
-    const foods = data.foods.filter((item) => matches(item, query)).slice(0, 5).map((item) => ({
+    const foods = search.foods.filter((item) => matches(item, query)).slice(0, 5).map((item) => ({
       type: '食物营养',
       title: `${item.name} · ${item.rate}`,
       href: '#/foods',
       sourceRefs: item.sourceRefs,
     }));
-    const qa = data.qa.filter((item) => matches(item, query)).slice(0, 5).map((item) => ({
+    const qa = search.qa.filter((item) => matches(item, query)).slice(0, 5).map((item) => ({
       type: `${item.category}问答`,
       title: item.question,
       href: '#/qa',
       sourceRefs: item.sourceRefs,
     }));
     return [...diet, ...training, ...foods, ...qa].slice(0, 14);
-  }, [query]);
+  }, [data.dashboardSearch, query]);
 }
 
 function ResultList({ items }) {
@@ -272,7 +394,6 @@ function ResultList({ items }) {
         <a className="result-row" href={item.href} key={`${item.type}-${index}`}>
           <span>{item.type}</span>
           <b>{item.title}</b>
-          <small>{formatSources(item.sourceRefs)}</small>
         </a>
       ))}
     </div>
@@ -280,12 +401,45 @@ function ResultList({ items }) {
 }
 
 function DietCourse({ goal, query }) {
-  const plans = data.dietPlans.filter((plan) => plan.goal === goal);
+  const data = useAppData();
+  const plans = (data.dietPlans || []).filter((plan) => plan.goal === goal);
   const [selectedId, setSelectedId] = useState(plans[0]?.id);
-  const selected = plans.find((plan) => plan.id === selectedId) || plans[0];
+  const [fatLossTrainingMode, setFatLossTrainingMode] = useState('strength');
+  const strengthPlans = plans.filter((plan) => !isNoStrengthPlan(plan));
+  const noStrengthPlan = plans.find((plan) => isNoStrengthPlan(plan));
+  const selectablePlans = goal === 'fat-loss'
+    ? fatLossTrainingMode === 'no-strength'
+      ? (noStrengthPlan ? [noStrengthPlan] : [])
+      : strengthPlans
+    : plans;
+  const selected = selectablePlans.find((plan) => plan.id === selectedId) || selectablePlans[0] || plans[0];
   const category = goal === 'fat-loss' ? '减脂' : '增肌';
-  const relatedQa = data.qa.filter((item) => item.category === category && matches(item, query)).slice(0, 8);
-  const filterRows = (rows) => rows.filter((row) => matches(row, query)).slice(0, 60);
+  const relatedQa = (data.qa || []).filter((item) => item.category === category && matches(item, query)).slice(0, 8);
+  const filterRows = (rows = []) => rows.filter((row) => matches(row, query)).slice(0, 60);
+  const hasStrengthPathSelector = goal !== 'fat-loss' || fatLossTrainingMode === 'strength';
+  const trainingModeSelector = goal === 'fat-loss' ? (
+    <div className="path-selector-inline training-mode-selector">
+      <PanelTitle title="是否安排力量训练" subtitle="先确认是否做力训；选择无力训后，会直接使用无力训者饮食方案。" />
+      <Segmented
+        items={[
+          { id: 'strength', label: '有力训' },
+          { id: 'no-strength', label: '无力训' },
+        ]}
+        selectedId={fatLossTrainingMode}
+        onSelect={setFatLossTrainingMode}
+        getLabel={(item) => item.label}
+      />
+    </div>
+  ) : null;
+  const pathSelector = hasStrengthPathSelector ? (
+    <div className="path-selector-inline">
+      <PanelTitle
+        title={`${category}饮食路径`}
+        subtitle={goal === 'fat-loss' ? '选择训练发生的时间，下面会切换对应的力训日和休息日饮食表。' : '选择训练发生的时间，下面会切换对应的力训日、休息日或每日饮食表。'}
+      />
+      <Segmented items={selectablePlans} selectedId={selected?.id} onSelect={setSelectedId} getLabel={(item) => item.timing} />
+    </div>
+  ) : null;
 
   return (
     <div className="course-layout">
@@ -296,14 +450,10 @@ function DietCourse({ goal, query }) {
               goal={goal}
               plan={selected}
               query={query}
-              pathSelector={(
-                <div className="path-selector-inline">
-                  <PanelTitle title={`${category}饮食路径`} subtitle="选择训练发生的时间，下面会切换对应的力训日、休息日或每日饮食表。" />
-                  <Segmented items={plans} selectedId={selected?.id} onSelect={setSelectedId} getLabel={(item) => item.timing} />
-                </div>
-              )}
+              topSelector={trainingModeSelector}
+              pathSelector={pathSelector}
             />
-            <PanelTitle title="原表输入说明" subtitle="下面保留 Excel 中对输入项、调整规则和执行注意事项的原始说明。" />
+            <PanelTitle title="执行说明" subtitle="整理输入项、调整规则和执行注意事项，方便按当前目标落地。" />
             <div className="info-grid">
               {selected.inputs.map((item, index) => (
                 <article className="info-tile" key={`${item.label}-${index}`}>
@@ -318,10 +468,6 @@ function DietCourse({ goal, query }) {
                 <MealList title="休息日饮食" rows={filterRows(selected.restDayMeals)} />
               </div>
             )}
-            <details className="source-details">
-              <summary>查看原表行</summary>
-              <RawRows rows={selected.rawRows} />
-            </details>
           </section>
         )}
         <section className="panel">
@@ -329,7 +475,7 @@ function DietCourse({ goal, query }) {
           <QaList items={relatedQa} />
         </section>
       </div>
-      <ModuleRail moduleId={goal} activeRefs={selected?.sourceRefs} />
+      <ModuleRail moduleId={goal} />
     </div>
   );
 }
@@ -417,7 +563,7 @@ const defaultProfiles = {
   'muscle-gain': { sex: 'male', height: '175', weight: '65', age: '28', strengthCalories: '200', cardioCalories: '0' },
 };
 
-function GoalInputPlanner({ goal, plan, query = '', pathSelector = null }) {
+function GoalInputPlanner({ goal, plan, query = '', topSelector = null, pathSelector = null }) {
   const storageKey = `fitknow-${goal}-profile`;
   const [profile, setProfile] = useState(() => {
     try {
@@ -443,10 +589,11 @@ function GoalInputPlanner({ goal, plan, query = '', pathSelector = null }) {
         <div>
           <p className="section-label">自己输入</p>
           <h3>{category}目标计算器</h3>
-          <p>{isFatLoss ? '按 Excel 口径估算无运动总消耗、力训/休息日平衡热量和应吃热量，再结合配额表拆到每餐。' : '按 Excel 口径估算无运动总消耗、力训/休息日平衡热量和应吃热量，再结合增肌配额拆到每餐。'}</p>
+          <p>{isFatLoss ? '估算无运动总消耗、力训/休息日平衡热量和应吃热量，再结合配额表拆到每餐。' : '估算无运动总消耗、力训/休息日平衡热量和应吃热量，再结合增肌配额拆到每餐。'}</p>
         </div>
-        <SourcePills refs={plan.sourceRefs} />
       </div>
+
+      {topSelector}
 
       <div className="profile-form">
         <Field label="性别">
@@ -544,31 +691,42 @@ function computeNutrition(goal, profile, plan) {
   const minimumCalories = sex === 'male' ? 1500 : 1200;
   const targetCalories = Math.max(trainingTargetCalories, minimumCalories);
 
-  // 使用好人松松比例表查表（仅男性适用，女性回退到旧公式）
-  let carbsRate, proteinRate, fatRate;
-  if (sex === 'male') {
-    const table = goal === 'fat-loss' ? maleFatLossRatios : maleMuscleGainRatios;
+  // 使用好人松松比例表查表；增肌表三段为：训练日碳水 / 休息日碳水 / 每日蛋白质。
+  let carbsRate, restCarbsRate, proteinRate, fatRate;
+  if (sex === 'male' || goal === 'muscle-gain') {
+    const table = goal === 'fat-loss'
+      ? maleFatLossRatios
+      : sex === 'female'
+        ? femaleMuscleGainRatios
+        : maleMuscleGainRatios;
     const ratios = lookupRatio(table, weight, height);
-    [carbsRate, proteinRate, fatRate] = ratios;
+    if (goal === 'muscle-gain') {
+      [carbsRate, restCarbsRate, proteinRate] = ratios;
+      fatRate = 0.9;
+    } else {
+      [carbsRate, proteinRate, fatRate] = ratios;
+      restCarbsRate = carbsRate * 0.82;
+    }
   } else {
     carbsRate = 0; // 女性暂用旧公式计算
+    restCarbsRate = 0;
     proteinRate = goal === 'fat-loss' ? 1.8 : 1.7;
     fatRate = goal === 'fat-loss' ? 0.75 : 0.9;
   }
 
   let trainingCarbs, trainingProtein, trainingFat, restCarbs, restProtein, restFat;
 
-  if (sex === 'male' && carbsRate > 0) {
+  if (carbsRate > 0) {
     // 力训日：比例 * 体重
     trainingCarbs = Math.round(weight * carbsRate);
     trainingProtein = Math.round(weight * proteinRate);
     trainingFat = Math.round(weight * fatRate);
-    // 休息日：碳水 * 0.82，蛋白质和脂肪不变
-    restCarbs = Math.round(trainingCarbs * 0.82);
+    // 减脂表未单列休息日碳水，按训练日碳水折算；增肌表第二段就是休息日碳水。
+    restCarbs = Math.round(weight * restCarbsRate);
     restProtein = trainingProtein;
     restFat = trainingFat;
   } else {
-    // 女性回退：用旧公式
+    // 没有录入配额表时回退：用旧公式
     const protein = Math.round(weight * proteinRate);
     const fat = Math.round(weight * fatRate);
     const carbs = Math.max(0, Math.round((targetCalories - protein * 4 - fat * 9) / 4));
@@ -611,6 +769,7 @@ function computeNutrition(goal, profile, plan) {
     fat,
     carbs,
     carbsRate: Math.round(carbsRate * 100) / 100,
+    restCarbsRate: Math.round(restCarbsRate * 100) / 100,
     proteinRate: Math.round(proteinRate * 100) / 100,
     fatRate: Math.round(fatRate * 100) / 100,
     trainingCarbs,
@@ -767,7 +926,7 @@ function foodMatchesOption(food, option) {
   return text && (text.includes(name) || name.includes(text.slice(0, Math.min(4, text.length))));
 }
 
-function findDefaultFood(options = [], macroType, foods = data.foods) {
+function findDefaultFood(options = [], macroType, foods = []) {
   const macroFoods = foods.filter((food) => food.macroType === macroType);
   const optionMatch = macroFoods.find((food) => options.some((option) => foodMatchesOption(food, option)));
   if (optionMatch) return optionMatch;
@@ -782,7 +941,7 @@ function DietSummary({ metrics, plan }) {
   const noStrength = isNoStrengthPlan(plan);
   const quota = metrics.quotaMatch || {
     trainingCarb: metrics.carbsRate,
-    restCarb: Math.round((metrics.restCarbs / metrics.weight) * 100) / 100,
+    restCarb: metrics.restCarbsRate ?? Math.round((metrics.restCarbs / metrics.weight) * 100) / 100,
     protein: metrics.proteinRate,
   };
   const calorieFactorText = isFatLoss ? '0.64' : '0.84';
@@ -881,7 +1040,7 @@ function StructuredMealTables({ plan, metrics, query }) {
               </div>
             </div>
             <div className="meal-card-grid">
-              {visibleMeals.map((meal) => <MealCard key={`${table.dayType}-${meal.name}`} table={table} meal={meal} metrics={metrics} />)}
+              {visibleMeals.map((meal, index) => <MealCard key={`${table.dayType}-${meal.name}`} table={table} meal={meal} metrics={metrics} defaultOpen={index === 0} />)}
             </div>
             <MealGuidance guidance={guidance} />
           </section>
@@ -891,22 +1050,25 @@ function StructuredMealTables({ plan, metrics, query }) {
   );
 }
 
-function MealCard({ table, meal, metrics }) {
+function MealCard({ table, meal, metrics, defaultOpen = false }) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
   const targets = computeMealTargets(metrics, table, meal);
   return (
-    <article className="meal-card">
-      <div className="meal-card-title">
+    <details className="meal-card" open={isOpen} onToggle={(event) => setIsOpen(event.currentTarget.open)}>
+      <summary className="meal-card-title">
         <span>{meal.order}</span>
         <div>
           <h4>{meal.name.replace(/^[①②③④⑤]/, '')}</h4>
           <p>{meal.mealTypeLabel} · 碳水 {meal.carbPercent}% · 蛋白质 {meal.proteinPercent}%</p>
         </div>
-      </div>
-      <div className="meal-macro-columns">
-        <MealFoodCell macroType="碳水" target={targets?.carb} options={meal.carbOptions} />
-        <MealFoodCell macroType="蛋白质" target={targets?.protein} options={meal.proteinOptions} disabled={meal.proteinPercent === 0} />
-      </div>
-    </article>
+      </summary>
+      {isOpen && (
+        <div className="meal-macro-columns">
+          <MealFoodCell macroType="碳水" target={targets?.carb} options={meal.carbOptions} />
+          <MealFoodCell macroType="蛋白质" target={targets?.protein} options={meal.proteinOptions} disabled={meal.proteinPercent === 0} />
+        </div>
+      )}
+    </details>
   );
 }
 
@@ -939,6 +1101,7 @@ function MealGuidance({ guidance }) {
 }
 
 function MealFoodCell({ macroType, target, options, disabled = false }) {
+  const data = useAppData();
   const foods = useMemo(() => data.foods.filter((food) => food.macroType === macroType), [macroType]);
   const defaultFood = useMemo(() => findDefaultFood(options, macroType, foods), [options, macroType, foods]);
   const listId = useMemo(() => `foods-${macroType}-${Math.random().toString(36).slice(2)}`, [macroType]);
@@ -1052,14 +1215,19 @@ function MealFoodCell({ macroType, target, options, disabled = false }) {
 }
 
 function TrainingCourse({ query }) {
+  const data = useAppData();
   const [planId, setPlanId] = useState(data.trainingPlans[0]?.id);
   const [dayFilter, setDayFilter] = useState('全部');
   const plan = data.trainingPlans.find((item) => item.id === planId) || data.trainingPlans[0];
   const dayOptions = ['全部', ...plan.days.map((day) => day.title)];
   const days = plan.days
     .filter((day) => dayFilter === '全部' || day.title === dayFilter)
-    .map((day) => ({ ...day, rows: day.rows.filter((row) => matches(row, query)) }))
-    .filter((day) => !query || matches(day, query) || day.rows.length);
+    .map((day) => {
+      const introRow = getTrainingDayIntroRow(day.rows);
+      const exerciseRows = getTrainingExerciseRows(day.rows).filter((row) => matches(row, query));
+      return { ...day, introRow, exerciseRows };
+    })
+    .filter((day) => !query || matches({ ...day, rows: day.exerciseRows }, query) || day.exerciseRows.length);
 
   return (
     <div className="course-layout">
@@ -1072,22 +1240,86 @@ function TrainingCourse({ query }) {
           </div>
         </section>
         <section className="panel">
+          <PanelTitle title="训练前知识准备" subtitle="先看通用训练原则，再进入下面的 Day 计划表。" />
+          <TrainingInfoTable items={plan.info} />
+        </section>
+        <section className="panel">
           <PanelTitle title={plan.title} subtitle={`${plan.environment === 'home' ? '居家' : '健身房'} · ${plan.splitType}`} />
-          <SourcePills refs={plan.sourceRefs} />
-          <div className="info-grid">
-            {plan.info.slice(0, 8).map((item) => <article className="info-tile" key={item.label}><b>{item.label}</b><span>{compact(item.detail, 150)}</span></article>)}
-          </div>
           {days.map((day) => (
             <details className="lesson-block" key={day.title} open>
               <summary>{day.title}</summary>
               {day.rationale && <p className="note">{day.rationale}</p>}
-              <Table headers={['部位', '组数', '动作', '肩关节', '肘关节', '来源']} rows={day.rows.map((row) => [row.muscleGroup, row.setGuidance, row.exercise, row.shoulderJoint, row.elbowJoint, formatSources(row.sourceRefs)])} />
+              <TrainingDayTable day={day} />
             </details>
           ))}
           {!days.length && <Empty text="没有匹配的训练内容。" />}
         </section>
       </div>
-      <ModuleRail moduleId="training" activeRefs={plan.sourceRefs} />
+      <ModuleRail moduleId="training" />
+    </div>
+  );
+}
+
+function TrainingInfoTable({ items = [] }) {
+  return (
+    <div className="table-wrap">
+      <table className="training-info-table">
+        <tbody>
+          {items.map((item) => (
+            <tr key={item.label}>
+              <th scope="row">{item.label}</th>
+              <td>{item.detail}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function TrainingDayTable({ day }) {
+  const rows = hydrateTrainingRows(day.exerciseRows || [], day.title);
+  const primaryJointLabel = getTrainingPrimaryJointLabel(day);
+
+  return (
+    <div className="table-wrap">
+      <table className="training-day-table">
+        <thead>
+          <tr>
+            <th colSpan={5} className="training-day-title">{day.title}</th>
+          </tr>
+          {day.introRow?.muscleGroup && (
+            <tr>
+              <td colSpan={5} className="training-day-intro">{day.introRow.muscleGroup}</td>
+            </tr>
+          )}
+          <tr>
+            <th rowSpan={2}>部位</th>
+            <th rowSpan={2}>组数</th>
+            <th rowSpan={2}>动作</th>
+            <th colSpan={2}>关节活动</th>
+          </tr>
+          <tr>
+            <th>{primaryJointLabel}</th>
+            <th>肘关节</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, index) => (
+            <tr key={`${row.muscleGroup}-${row.setGuidance}-${row.exercise}-${index}`}>
+              {shouldRenderTrainingGroupCell(rows, index, 'muscleGroup') && (
+                <td rowSpan={getTrainingGroupRowSpan(rows, index, 'muscleGroup')} className="training-group-cell">{row.muscleGroup}</td>
+              )}
+              {shouldRenderTrainingGroupCell(rows, index, 'setGuidance') && (
+                <td rowSpan={getTrainingGroupRowSpan(rows, index, 'setGuidance')} className="training-group-cell">{row.setGuidance}</td>
+              )}
+              <td>{row.exercise}</td>
+              <td>{row.shoulderJoint}</td>
+              <td>{row.elbowJoint}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -1111,12 +1343,13 @@ function ToolsCourse() {
 }
 
 function FoodsCourse({ query }) {
+  const data = useAppData();
   const [macro, setMacro] = useState('全部');
   const foods = data.foods.filter((item) => (macro === '全部' || item.macroType === macro) && matches(item, query));
   return (
     <div className="course-layout">
       <section className="panel content-stack">
-        <PanelTitle title="日常食物营养率" subtitle="按碳水、蛋白质、GI/部位说明查食物，详情里保留原表解释。" />
+        <PanelTitle title="日常食物营养率" subtitle="按碳水、蛋白质、GI 和部位说明查食物，快速估算日常摄入。" />
         <div className="segmented compact">
           {['全部', '碳水', '蛋白质'].map((item) => <button key={item} className={macro === item ? 'selected' : ''} onClick={() => setMacro(item)}>{item}</button>)}
         </div>
@@ -1125,8 +1358,7 @@ function FoodsCourse({ query }) {
             <details className="food-card" key={food.id}>
               <summary><b>{food.name}</b><span>{food.group}</span><strong>{food.rate}</strong></summary>
               <p>{food.macroType} · {food.giOrPosition || '未标注'}</p>
-              <p>{food.explanation || '原表无额外说明。'}</p>
-              <SourcePills refs={food.sourceRefs} />
+              <p>{food.explanation || '暂无补充说明。'}</p>
             </details>
           ))}
         </div>
@@ -1138,12 +1370,13 @@ function FoodsCourse({ query }) {
 }
 
 function QaCourse({ query }) {
+  const data = useAppData();
   const [category, setCategory] = useState('全部');
   const items = data.qa.filter((item) => (category === '全部' || item.category === category) && matches(item, query));
   return (
     <div className="course-layout">
       <section className="panel content-stack">
-        <PanelTitle title="减脂 / 增肌问答库" subtitle="按问题定位执行中的卡点，答案保留原表正文和来源行。" />
+        <PanelTitle title="减脂 / 增肌问答库" subtitle="整理常见执行问题，帮助你快速定位卡点。" />
         <div className="segmented compact">
           {['全部', '减脂', '增肌'].map((item) => <button key={item} className={category === item ? 'selected' : ''} onClick={() => setCategory(item)}>{item}</button>)}
         </div>
@@ -1155,6 +1388,7 @@ function QaCourse({ query }) {
 }
 
 function AnatomyCourse({ query, openLightbox }) {
+  const data = useAppData();
   const anatomy = data.anatomy;
   const jointRows = anatomy.jointToMuscles.filter((item) => matches(item, query));
   const galleries = anatomy.imageGalleries
@@ -1169,11 +1403,11 @@ function AnatomyCourse({ query, openLightbox }) {
           <div className="info-grid">
             {anatomy.intro.map((item) => <article className="info-tile" key={item.title}><b>{item.title}</b><span>{item.body}</span></article>)}
           </div>
-          <Table headers={['关节', '活动', '通俗描述', '动作例', '参与肌肉', '来源']} rows={jointRows.map((row) => [row.joint, row.movement, row.description, row.example, row.muscles.join('、'), formatSources(row.sourceRefs)])} />
+          <Table headers={['关节', '活动', '通俗描述', '动作例', '参与肌肉']} rows={jointRows.map((row) => [row.joint, row.movement, row.description, row.example, row.muscles.join('、')])} />
           {anatomy.muscleSections.map((section) => (
             <details className="lesson-block" key={section.title}>
               <summary>{section.title}</summary>
-              <Table headers={['关节', '活动', '通俗描述', '肌肉 / 动作', '来源']} rows={section.rows.filter((row) => matches(row, query)).map((row) => [row.joint, row.movement, row.description, row.targets.map((target) => `${target.muscle}: ${target.item}`).join('；'), formatSources(row.sourceRefs)])} />
+              <Table headers={['关节', '活动', '通俗描述', '肌肉 / 动作']} rows={section.rows.filter((row) => matches(row, query)).map((row) => [row.joint, row.movement, row.description, row.targets.map((target) => `${target.muscle}: ${target.item}`).join('；')])} />
             </details>
           ))}
         </section>
@@ -1196,66 +1430,54 @@ function AnatomyCourse({ query, openLightbox }) {
   );
 }
 
-function SourceIndex({ query }) {
-  const [moduleId, setModuleId] = useState('全部');
-  const modules = ['全部', ...routes.filter((route) => route.id !== 'dashboard').map((route) => route.id)];
-  const sheets = data.sheetCategories.filter((sheet) => (moduleId === '全部' || sheet.moduleId === moduleId) && matches(sheet, query));
-  const [openIndex, setOpenIndex] = useState(null);
-  const openSheet = data.rawSheets.find((sheet) => sheet.index === openIndex);
-
+function SourceIndex() {
+  const data = useAppData();
   return (
     <div className="course-layout">
       <div className="content-stack">
-        <section className="panel">
-          <PanelTitle title="30 个 Sheet 分类地图" subtitle="所有模块都可以回到原始 sheet 和原始行，方便核对 Excel 正文。" />
-          <div className="segmented compact">
-            {modules.map((item) => <button key={item} className={moduleId === item ? 'selected' : ''} onClick={() => setModuleId(item)}>{item === '全部' ? '全部' : moduleById[item]?.label || item}</button>)}
-          </div>
-          <div className="sheet-grid">
-            {sheets.map((sheet) => (
-              <button className={openIndex === sheet.index ? 'sheet-card selected' : 'sheet-card'} key={sheet.index} onClick={() => setOpenIndex(openIndex === sheet.index ? null : sheet.index)}>
-                <span>Sheet {sheet.index}</span>
-                <b>{sheet.displayTitle}</b>
-                <small>{moduleById[sheet.moduleId]?.label || '总览'} · {sheet.rows} 行</small>
-              </button>
-            ))}
+        <section className="panel download-panel">
+          <PanelTitle title="资料下载" subtitle="下载原版表格资料，配合站内课程一起使用。" />
+          <div className="download-card">
+            <div>
+              <p className="section-label">原版资料</p>
+              <h3>{data.source}</h3>
+              <p>站内内容已整理成饮食、训练、工具和问答模块；需要查看完整资料时，可以下载原版文件。</p>
+              <small>更新：{new Date(data.generatedAt).toLocaleString('zh-CN')}</small>
+            </div>
+            <a className="primary-button" href={excelDownloadPath} download>下载 Excel</a>
           </div>
         </section>
-        {openSheet && (
-          <section className="panel">
-            <PanelTitle title={`Sheet ${openSheet.index} · ${openSheet.title}`} subtitle="以下为抽取到的非空原始行，最多保留前 12 列。" />
-            <RawRows rows={openSheet.rows} />
-          </section>
-        )}
       </div>
       <ModuleRail moduleId="source" />
     </div>
   );
 }
 
-function ModuleRail({ moduleId, activeRefs }) {
-  const sheets = data.sheetCategories.filter((sheet) => moduleId === 'dashboard' ? true : sheet.moduleId === moduleId);
-  const module = moduleById[moduleId] || { label: '总览', description: '整本工作簿概览' };
+const moduleDetails = {
+  dashboard: { label: '总览', description: '从目标出发，快速进入饮食、训练、工具和问答。' },
+  'fat-loss': { label: '减脂饮食', description: '按是否力训、训练时间和个人数据拆解每日饮食。' },
+  'muscle-gain': { label: '增肌饮食', description: '按训练安排和体型数据规划碳水、蛋白质和餐次。' },
+  training: { label: '训练计划', description: '按环境和分化方式查看每一天的部位、组数和动作。' },
+  tools: { label: '热量工具', description: '估算有氧消耗、最大力量和食物重量。' },
+  foods: { label: '食物营养', description: '查询常见食物的碳水、蛋白质和营养率。' },
+  qa: { label: '问答库', description: '查看减脂、增肌执行中的常见问题。' },
+  anatomy: { label: '拉伸解剖', description: '理解关节活动、参与肌肉和动作图示。' },
+  source: { label: '资料下载', description: '下载原版表格资料，配合站内内容核对和学习。' },
+};
+
+function ModuleRail({ moduleId }) {
+  const module = moduleDetails[moduleId] || moduleDetails.dashboard;
+  const relatedRoutes = routes.filter((route) => route.id !== moduleId).slice(0, 6);
   return (
     <aside className="module-rail">
-      <p className="section-label">课程详情</p>
+      <p className="section-label">模块概览</p>
       <h2>{module.label}</h2>
       <p>{module.description}</p>
-      <div className="rail-stats">
-        <Stat value={sheets.length} label="关联 Sheet" />
-        <Stat value={sheets.reduce((sum, sheet) => sum + sheet.rows, 0)} label="来源行数" />
-      </div>
-      {activeRefs?.length > 0 && (
-        <div className="trace-box">
-          <b>当前来源</b>
-          <SourcePills refs={activeRefs} />
-        </div>
-      )}
       <div className="source-list">
-        {sheets.slice(0, 10).map((sheet) => (
-          <a href="#/source" key={sheet.index}>
-            <span>Sheet {sheet.index}</span>
-            <b>{sheet.displayTitle}</b>
+        {relatedRoutes.map((route) => (
+          <a href={route.hash} key={route.id}>
+            <span>{route.mark}</span>
+            <b>{route.label}</b>
           </a>
         ))}
       </div>
@@ -1264,14 +1486,13 @@ function ModuleRail({ moduleId, activeRefs }) {
 }
 
 function CardioCalculator({ compact: isCompact = false }) {
+  const data = useAppData();
   const restOptions = [...new Set(data.cardio.map((item) => item.restingHeartRate))].filter(Boolean);
   const [rest, setRest] = useState(restOptions[0] || '60');
   const [heart, setHeart] = useState('120');
   const [weight, setWeight] = useState('70');
-  const [hours, setHours] = useState('2');
   const entry = data.cardio.find((item) => item.restingHeartRate === rest && item.exerciseHeartRate === heart) || data.cardio[0];
   const kcalHour = entry ? Math.round(Number(entry.kcalPerKg) * Number(weight || 0)) : 0;
-  const daily = Math.round((kcalHour * Number(hours || 0)) / 7);
 
   return (
     <section className="panel tool-panel">
@@ -1280,17 +1501,47 @@ function CardioCalculator({ compact: isCompact = false }) {
         <Field label="静息心率"><select value={rest} onChange={(event) => setRest(event.target.value)}>{restOptions.map((value) => <option key={value}>{value}</option>)}</select></Field>
         <Field label="运动心率"><input value={heart} onChange={(event) => setHeart(event.target.value)} /></Field>
         <Field label="体重 kg"><input value={weight} onChange={(event) => setWeight(event.target.value)} /></Field>
-        <Field label="每周小时"><input value={hours} onChange={(event) => setHours(event.target.value)} /></Field>
       </div>
       <div className="calc-result">
         <strong>{kcalHour || '-'} kcal/小时</strong>
-        <span>折算每日：{daily || '-'} kcal · {formatSources(entry?.sourceRefs)}</span>
+        <span>{entry ? `${Number(entry.kcalPerKg).toFixed(1)} kcal/kg/小时 × ${Number(weight || 0)} kg` : '每 kg 体重消耗 × 当前体重'}</span>
       </div>
+      {!isCompact && <CardioKcalTable rows={data.cardio} />}
     </section>
   );
 }
 
+function CardioKcalTable({ rows = [] }) {
+  return (
+    <div className="table-wrap">
+      <table className="cardio-kcal-table">
+        <thead>
+          <tr>
+            <th>静息心率</th>
+            <th>运动心率</th>
+            <th>每 kg 体重热量消耗</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, index) => (
+            <tr key={`${row.restingHeartRate}-${row.exerciseHeartRate}`}>
+              {shouldRenderTrainingGroupCell(rows, index, 'restingHeartRate') && (
+                <td rowSpan={getTrainingGroupRowSpan(rows, index, 'restingHeartRate')} className="training-group-cell">
+                  静息心率 {row.restingHeartRate}
+                </td>
+              )}
+              <td>运动心率 {row.exerciseHeartRate}</td>
+              <td>{Number(row.kcalPerKg).toFixed(1)} kcal/kg/小时</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function OneRepMaxCalculator({ compact: isCompact = false }) {
+  const data = useAppData();
   const [weight, setWeight] = useState('50');
   const [reps, setReps] = useState('10');
   const w = Number(weight || 0);
@@ -1307,14 +1558,15 @@ function OneRepMaxCalculator({ compact: isCompact = false }) {
       </div>
       <div className="calc-result">
         <strong>{avg || '-'} kg</strong>
-        <span>九个公式平均值 · Sheet 24</span>
+        <span>九个公式平均值</span>
       </div>
-      {!isCompact && <Table headers={['公式', '预测值', '备注', '来源']} rows={results.map((row) => [row.author, `${row.value.toFixed(1)} kg`, row.note, formatSources(row.sourceRefs)])} />}
+      {!isCompact && <Table headers={['公式', '预测值', '备注']} rows={results.map((row) => [row.author, `${row.value.toFixed(1)} kg`, row.note])} />}
     </section>
   );
 }
 
 function FoodCalculator() {
+  const data = useAppData();
   const [foodId, setFoodId] = useState(data.foods[0]?.id);
   const [target, setTarget] = useState('50');
   const food = data.foods.find((item) => item.id === foodId) || data.foods[0];
@@ -1323,7 +1575,7 @@ function FoodCalculator() {
     <div className="tool-grid">
       <Field label="选择食物"><select value={foodId} onChange={(event) => setFoodId(event.target.value)}>{data.foods.map((item) => <option key={item.id} value={item.id}>{item.macroType} · {item.name}</option>)}</select></Field>
       <Field label={`目标${food?.macroType || ''}克数`}><input value={target} onChange={(event) => setTarget(event.target.value)} /></Field>
-      <div className="calc-result inline"><strong>{amount ? `${amount.value} ${amount.unit}` : '无法换算'}</strong><span>{food?.name} · 营养率 {food?.rate} · {formatSources(food?.sourceRefs)}</span></div>
+      <div className="calc-result inline"><strong>{amount ? `${amount.value} ${amount.unit}` : '无法换算'}</strong><span>{food?.name} · 营养率 {food?.rate}</span></div>
     </div>
   );
 }
@@ -1370,21 +1622,10 @@ function QaList({ items }) {
       {items.map((item, index) => (
         <details className="qa-item" key={`${item.id}-${index}`}>
           <summary><span>{item.category}</span>{item.question}</summary>
-          <p>{item.answer || '原表中该问题暂无正文。'}</p>
-          <SourcePills refs={item.sourceRefs} />
+          <p>{item.answer || '暂无详细回答。'}</p>
         </details>
       ))}
       {!items.length && <Empty text="没有匹配的问答。" />}
-    </div>
-  );
-}
-
-function RawRows({ rows }) {
-  return (
-    <div className="raw-list">
-      {rows.map((row) => (
-        <p key={row.row}><span>{row.row}</span>{row.values.filter(Boolean).join(' ｜ ')}</p>
-      ))}
     </div>
   );
 }
@@ -1400,26 +1641,55 @@ function Table({ headers, rows }) {
   );
 }
 
-function SourcePills({ refs = [] }) {
-  if (!refs?.length) return null;
-  return (
-    <div className="source-pills">
-      {refs.slice(0, 3).map((ref, index) => <span key={`${ref.sheetIndex}-${ref.row || ref.rowRange}-${index}`}>{formatSource(ref)}</span>)}
-    </div>
-  );
+function isTrainingDayIntroRow(row) {
+  return row && !row.setGuidance && !row.exercise;
 }
 
-function formatSource(ref) {
-  if (!ref) return '来源未知';
-  const sheet = `Sheet ${ref.sheetIndex}`;
-  if (ref.row) return `${sheet} · 第 ${ref.row} 行`;
-  if (ref.rowRange) return `${sheet} · 行 ${ref.rowRange}`;
-  return `${sheet} · ${sheetByIndex[ref.sheetIndex]?.title || ref.sheetTitle || ''}`;
+function getTrainingDayIntroRow(rows = []) {
+  return isTrainingDayIntroRow(rows[0]) ? rows[0] : null;
 }
 
-function formatSources(refs = []) {
-  if (!refs?.length) return '来源待查';
-  return refs.slice(0, 2).map(formatSource).join(' / ');
+function getTrainingExerciseRows(rows = []) {
+  return getTrainingDayIntroRow(rows) ? rows.slice(1) : rows;
+}
+
+function hydrateTrainingRows(rows = [], title = '') {
+  let currentMuscleGroup = getTrainingDefaultMuscleGroup(title);
+  return rows.map((row) => {
+    currentMuscleGroup = row.muscleGroup || currentMuscleGroup;
+    return { ...row, muscleGroup: currentMuscleGroup };
+  });
+}
+
+function getTrainingDefaultMuscleGroup(title = '') {
+  return title.replace(/^Day\d+[：:]\s*/, '').split('+')[0]?.trim() || '';
+}
+
+function getTrainingPrimaryJointLabel(day) {
+  const introLabel = day.introRow?.shoulderJoint;
+  if (introLabel?.includes('关节')) return introLabel;
+  if (day.title?.includes('腿') || day.title?.includes('臀')) return '膝关节';
+  return '肩关节';
+}
+
+function shouldRenderTrainingGroupCell(rows, index, key) {
+  if (index === 0) return true;
+  const row = rows[index];
+  const previous = rows[index - 1];
+  if (key === 'setGuidance' && row.muscleGroup !== previous.muscleGroup) return true;
+  return row[key] !== previous[key];
+}
+
+function getTrainingGroupRowSpan(rows, startIndex, key) {
+  const row = rows[startIndex];
+  let span = 1;
+  for (let index = startIndex + 1; index < rows.length; index += 1) {
+    const next = rows[index];
+    if (next[key] !== row[key]) break;
+    if (key === 'setGuidance' && next.muscleGroup !== row.muscleGroup) break;
+    span += 1;
+  }
+  return span;
 }
 
 function PanelTitle({ title, subtitle }) {
