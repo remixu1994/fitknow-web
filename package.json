@@ -8,6 +8,7 @@
     "verify:data": "\"C:\\Users\\hp\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe\" scripts/verify_data.py",
     "dev": "vite",
     "dev:5174": "vite --host 127.0.0.1 --port 5174 --strictPort",
+    "typecheck": "tsc --noEmit",
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1"
   },
@@ -18,6 +19,11 @@
     "vite": "^6.0.7"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "^4.3.1",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "tailwindcss": "^4.3.1",
+    "typescript": "^6.0.3",
     "vite-plugin-pwa": "^1.3.0"
   }
 }

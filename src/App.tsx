@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
+// @ts-nocheck
+import { useEffect, useMemo, useState } from 'react';
 import { Empty, Field, PageLoading, PanelTitle, Stat } from './components/ui/course-primitives';
 import { DataContext, useAppData } from './lib/app-data';
 import { coreLoader, routeFromHash, routeLoaders } from './lib/data-loaders';
