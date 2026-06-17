@@ -1,6 +1,17 @@
 import { createContext, useContext } from 'react';
+import type { CoreData, DietPlan, TrainingPlan, Food, QA, AnatomyData, CardioEntry, OneRepMaxEntry, DashboardSearch } from '../types';
 
-export type AppData = Record<string, any>;
+export type AppData = CoreData & {
+  dietPlans?: DietPlan[];
+  trainingPlans?: TrainingPlan[];
+  foods?: Food[];
+  qa?: QA[];
+  anatomy?: AnatomyData;
+  cardio?: CardioEntry[];
+  oneRepMax?: OneRepMaxEntry[];
+  dashboardSearch?: DashboardSearch;
+  loadError?: Error;
+};
 
 export const DataContext = createContext<AppData | null>(null);
 

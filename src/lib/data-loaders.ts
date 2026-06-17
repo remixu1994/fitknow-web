@@ -13,7 +13,7 @@ export type RouteKey =
 
 type JsonModule<T = AppData> = { default: T };
 type JsonLoader<T = AppData> = () => Promise<JsonModule<T>>;
-type RouteLoader = (args: { query: string }) => Promise<AppData>;
+type RouteLoader = (args: { query: string }) => Promise<Record<string, any>>;
 
 export const routeFromHash = (): string => (window.location.hash || '#/').replace('#/', '') || 'dashboard';
 

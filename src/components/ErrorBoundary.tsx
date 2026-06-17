@@ -1,16 +1,26 @@
-import React from 'react';
+import { Component, type ReactNode, type ErrorInfo } from 'react';
 
-export default class ErrorBoundary extends React.Component {
-  constructor(props) {
+type ErrorBoundaryProps = {
+  children: ReactNode;
+};
+
+type ErrorBoundaryState = {
+  hasError: boolean;
+  error: Error | null;
+  errorInfo: ErrorInfo | null;
+};
+
+export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false, error: null, errorInfo: null };
   }
 
-  static getDerivedStateFromError(error) {
-    return { hasError: true, error };
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error, errorInfo: null };
   }
 
-  componentDidCatch(error, errorInfo) {
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     this.setState({ errorInfo });
     console.error('[FitKnow ErrorBoundary]', error, errorInfo);
   }
