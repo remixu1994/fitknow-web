@@ -1,8 +1,14 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { createRoot } from 'react-dom/client';
-import './styles.css';
-import ErrorBoundary from './components/ErrorBoundary';
-
+import React, { useEffect, useMemo, useState } from 'react';
+import { Empty, Field, PageLoading, PanelTitle, Stat } from './components/ui/course-primitives';
+import { DataContext, useAppData } from './lib/app-data';
+import { coreLoader, routeFromHash, routeLoaders } from './lib/data-loaders';
+import {
+  femaleMuscleGainRatios,
+  lookupRatio,
+  maleFatLossRatios,
+  maleMuscleGainRatios,
+} from './lib/fitness-ratios';
+import { compact, matches } from './lib/search';
 const routes = [
   { id: 'dashboard', hash: '#/', label: '总览', mark: '01' },
   { id: 'fat-loss', hash: '#/fat-loss', label: '减脂饮食', mark: '02' },
@@ -17,119 +23,9 @@ const routes = [
 
 const excelDownloadPath = '/generated/assets/【可任意分享】健身Excel超级套表（作者：B站好人松松）26年4月最新版.xlsx';
 
-// 好人松松男性配额表（g/kg体重）
-// 减脂格式：{weight: {height: [carbs, protein, fat]}}
-// 增肌格式：{weight: {height: [trainingCarb, restCarb, protein]}}
-const maleFatLossRatios = {
-  60: {160: [2.6, 2.0, 1.4]},
-  65: {160: [2.6, 1.9, 1.4], 165: [2.6, 2.0, 1.4]},
-  70: {160: [2.5, 1.9, 1.3], 165: [2.5, 2.0, 1.4], 170: [2.6, 2.0, 1.4], 175: [2.7, 2.1, 1.4]},
-  75: {160: [2.4, 1.9, 1.3], 165: [2.5, 1.9, 1.3], 170: [2.5, 2.0, 1.4], 175: [2.6, 2.1, 1.4], 180: [2.7, 2.1, 1.4]},
-  80: {160: [2.4, 1.9, 1.3], 165: [2.4, 1.9, 1.3], 170: [2.5, 2.0, 1.3], 175: [2.5, 2.0, 1.4], 180: [2.6, 2.1, 1.4], 185: [2.6, 2.1, 1.4]},
-  85: {160: [2.3, 1.8, 1.2], 165: [2.4, 1.9, 1.3], 170: [2.4, 1.9, 1.3], 175: [2.5, 2.0, 1.3], 180: [2.5, 2.0, 1.4], 185: [2.6, 2.1, 1.4], 190: [2.6, 2.2, 1.4]},
-  90: {160: [2.3, 1.8, 1.2], 165: [2.3, 1.9, 1.2], 170: [2.4, 1.9, 1.3], 175: [2.4, 2.0, 1.3], 180: [2.5, 2.0, 1.3], 185: [2.5, 2.1, 1.4], 190: [2.6, 2.1, 1.4]},
-  95: {160: [2.2, 1.8, 1.2], 165: [2.3, 1.8, 1.2], 170: [2.3, 1.9, 1.2], 175: [2.4, 1.9, 1.3], 180: [2.4, 2.0, 1.3], 185: [2.5, 2.0, 1.3], 190: [2.5, 2.1, 1.3]},
-  100: {160: [2.2, 1.8, 1.2], 165: [2.2, 1.8, 1.2], 170: [2.3, 1.9, 1.2], 175: [2.3, 1.9, 1.2], 180: [2.4, 2.0, 1.3], 185: [2.4, 2.0, 1.3], 190: [2.5, 2.1, 1.3]},
-  105: {160: [2.1, 1.8, 1.2], 165: [2.2, 1.8, 1.2], 170: [2.2, 1.9, 1.2], 175: [2.3, 1.9, 1.2], 180: [2.3, 1.9, 1.2], 185: [2.4, 2.0, 1.3], 190: [2.4, 2.0, 1.3]},
-  110: {160: [2.1, 1.8, 1.1], 165: [2.2, 1.8, 1.2], 170: [2.2, 1.8, 1.2], 175: [2.2, 1.9, 1.2], 180: [2.3, 1.9, 1.2], 185: [2.3, 2.0, 1.3], 190: [2.4, 2.0, 1.3]},
-  115: {160: [2.1, 1.7, 1.1], 165: [2.1, 1.8, 1.1], 170: [2.2, 1.8, 1.2], 175: [2.2, 1.9, 1.2], 180: [2.2, 1.9, 1.2], 185: [2.3, 1.9, 1.2], 190: [2.3, 2.0, 1.3]},
-  120: {160: [1.9, 1.6, 1.0], 165: [2.0, 1.6, 1.1], 170: [2.0, 1.7, 1.1], 175: [2.1, 1.7, 1.1], 180: [2.1, 1.8, 1.1], 185: [2.1, 1.8, 1.1], 190: [2.2, 1.8, 1.2]},
-  125: {160: [1.9, 1.6, 1.0], 165: [1.9, 1.6, 1.1], 170: [2.0, 1.7, 1.1], 175: [2.0, 1.7, 1.1], 180: [2.1, 1.7, 1.1], 185: [2.1, 1.8, 1.1], 190: [2.1, 1.8, 1.2]},
-  130: {160: [1.9, 1.6, 1.0], 165: [1.9, 1.6, 1.0], 170: [2.0, 1.7, 1.1], 175: [2.0, 1.7, 1.1], 180: [2.0, 1.7, 1.1], 185: [2.1, 1.8, 1.1], 190: [2.1, 1.8, 1.1]},
-};
-
-const maleMuscleGainRatios = {
-  50: {160: [4.0, 3.0, 1.7], 165: [4.1, 3.1, 1.8], 170: [4.3, 3.2, 1.8], 175: [4.4, 3.4, 1.9], 180: [4.5, 3.5, 1.9], 185: [4.7, 3.6, 2.0], 190: [4.8, 3.8, 2.1]},
-  55: {160: [3.8, 2.9, 1.6], 165: [4.0, 3.0, 1.7], 170: [4.1, 3.1, 1.7], 175: [4.2, 3.2, 1.8], 180: [4.3, 3.4, 1.9], 185: [4.4, 3.5, 1.9], 190: [4.6, 3.6, 2.0]},
-  60: {160: [3.7, 2.8, 1.6], 165: [3.8, 2.9, 1.6], 170: [3.9, 3.0, 1.7], 175: [4.0, 3.2, 1.7], 180: [4.1, 3.3, 1.8], 185: [4.2, 3.4, 1.8], 190: [4.4, 3.5, 1.9]},
-  65: {160: [3.6, 2.8, 1.5], 165: [3.7, 2.9, 1.6], 170: [3.8, 3.0, 1.6], 175: [3.9, 3.1, 1.7], 180: [4.0, 3.2, 1.7], 185: [4.1, 3.3, 1.7], 190: [4.2, 3.4, 1.8]},
-  70: {160: [3.5, 2.7, 1.5], 165: [3.6, 2.8, 1.5], 170: [3.7, 2.9, 1.6], 175: [3.8, 3.0, 1.6], 180: [3.8, 3.1, 1.6], 185: [3.9, 3.2, 1.7], 190: [4.0, 3.3, 1.8]},
-  75: {170: [3.6, 2.9, 1.5], 175: [3.6, 2.9, 1.6], 180: [3.7, 3.0, 1.6], 185: [3.8, 3.1, 1.6], 190: [3.9, 3.2, 1.7]},
-  80: {175: [3.5, 2.9, 1.5], 180: [3.6, 3.0, 1.6], 185: [3.7, 3.1, 1.6], 190: [3.8, 3.1, 1.6]},
-  85: {180: [3.5, 2.9, 1.5], 185: [3.6, 3.0, 1.5], 190: [3.7, 3.0, 1.6]},
-  90: {185: [3.5, 2.9, 1.5], 190: [3.6, 3.0, 1.5]},
-};
-
-const femaleMuscleGainRatios = {
-  40: {150: [3.3, 2.5, 1.4], 155: [3.5, 2.7, 1.5], 160: [3.7, 2.9, 1.6], 165: [3.8, 3.0, 1.6], 170: [4.0, 3.2, 1.7], 175: [4.1, 3.4, 1.8], 180: [4.3, 3.5, 1.8]},
-  45: {150: [3.2, 2.5, 1.4], 155: [3.3, 2.6, 1.4], 160: [3.5, 2.8, 1.5], 165: [3.6, 2.9, 1.6], 170: [3.8, 3.1, 1.6], 175: [3.9, 3.2, 1.7], 180: [4.1, 3.4, 1.7]},
-  50: {150: [3.1, 2.4, 1.3], 155: [3.2, 2.6, 1.4], 160: [3.3, 2.7, 1.4], 165: [3.5, 2.8, 1.5], 170: [3.6, 3.0, 1.5], 175: [3.7, 3.1, 1.6], 180: [3.9, 3.2, 1.7]},
-  55: {150: [3.0, 2.4, 1.3], 155: [3.1, 2.5, 1.3], 160: [3.2, 2.7, 1.4], 165: [3.3, 2.8, 1.4], 170: [3.5, 2.9, 1.5], 175: [3.6, 3.0, 1.5], 180: [3.7, 3.1, 1.6]},
-  60: {160: [3.1, 2.6, 1.3], 165: [3.2, 2.7, 1.4], 170: [3.4, 2.8, 1.4], 175: [3.5, 2.9, 1.5], 180: [3.6, 3.0, 1.5]},
-  65: {165: [3.2, 2.7, 1.4], 170: [3.3, 2.8, 1.4], 175: [3.4, 2.9, 1.4], 180: [3.5, 3.0, 1.5]},
-  70: {170: [3.2, 2.7, 1.4], 175: [3.3, 2.8, 1.4], 180: [3.4, 2.9, 1.4]},
-  75: {175: [3.2, 2.8, 1.4], 180: [3.3, 2.9, 1.4]},
-};
-
-function lookupRatio(ratioTable, weight, height) {
-  const weights = Object.keys(ratioTable).map(Number).sort((a, b) => a - b);
-  let bestWeight = weights[0];
-  for (const w of weights) {
-    if (Math.abs(w - weight) < Math.abs(bestWeight - weight)) bestWeight = w;
-  }
-  const heights = Object.keys(ratioTable[bestWeight]).map(Number).sort((a, b) => a - b);
-  let bestHeight = heights[0];
-  for (const h of heights) {
-    if (Math.abs(h - height) < Math.abs(bestHeight - height)) bestHeight = h;
-  }
-  return ratioTable[bestWeight][bestHeight];
-}
-
-const routeFromHash = () => (window.location.hash || '#/').replace('#/', '') || 'dashboard';
-
-const DataContext = createContext(null);
-
-function useAppData() {
-  const data = useContext(DataContext);
-  if (!data) {
-    throw new Error('FitKnow data has not loaded yet.');
-  }
-  return data;
-}
-
-const loadJson = (loader) => loader().then((module) => module.default);
-const coreLoader = () => loadJson(() => import('./data/generated/core.json'));
-const routeLoaders = {
-  dashboard: async ({ query }) => {
-    const [tools, dashboardSearch] = await Promise.all([
-      loadJson(() => import('./data/generated/tools.json')),
-      query.trim() ? loadJson(() => import('./data/generated/dashboard-search.json')) : Promise.resolve(null),
-    ]);
-    return dashboardSearch ? { ...tools, dashboardSearch } : tools;
-  },
-  'fat-loss': async () => {
-    const [diet, foods, qa] = await Promise.all([
-      loadJson(() => import('./data/generated/fat-loss.json')),
-      loadJson(() => import('./data/generated/foods.json')),
-      loadJson(() => import('./data/generated/qa.json')),
-    ]);
-    return { ...diet, ...foods, ...qa };
-  },
-  'muscle-gain': async () => {
-    const [diet, foods, qa] = await Promise.all([
-      loadJson(() => import('./data/generated/muscle-gain.json')),
-      loadJson(() => import('./data/generated/foods.json')),
-      loadJson(() => import('./data/generated/qa.json')),
-    ]);
-    return { ...diet, ...foods, ...qa };
-  },
-  training: () => loadJson(() => import('./data/generated/training.json')),
-  tools: async () => {
-    const [tools, foods] = await Promise.all([
-      loadJson(() => import('./data/generated/tools.json')),
-      loadJson(() => import('./data/generated/foods.json')),
-    ]);
-    return { ...tools, ...foods };
-  },
-  foods: () => loadJson(() => import('./data/generated/foods.json')),
-  qa: () => loadJson(() => import('./data/generated/qa.json')),
-  anatomy: () => loadJson(() => import('./data/generated/anatomy.json')),
-  source: () => loadJson(() => import('./data/generated/source.json')),
-};
-
 function NotFound() {
   return (
-    <div className="not-found">
+    <div className="not-found mx-auto flex max-w-2xl flex-col items-center px-6 py-16 text-center">
       <h2>404</h2>
       <p>页面不存在</p>
       <a href="#/">返回首页</a>
@@ -137,9 +33,6 @@ function NotFound() {
   );
 }
 
-const asText = (value) => String(value ?? '');
-const compact = (value, max = 128) => asText(value).replace(/\s+/g, ' ').slice(0, max);
-const matches = (item, query) => !query || JSON.stringify(item).toLowerCase().includes(query.toLowerCase());
 function App() {
   const [route, setRoute] = useState(routeFromHash());
   const [query, setQuery] = useState('');
@@ -234,20 +127,11 @@ function App() {
   );
 }
 
-function PageLoading({ text }) {
-  return (
-    <div className="page-loading">
-      <div className="page-loading-spinner" aria-hidden="true" />
-      <p>{text}</p>
-    </div>
-  );
-}
-
 function Shell({ active, query, setQuery, children }) {
   return (
-    <div className="app-shell">
-      <aside className="sidebar">
-        <a className="brand" href="#/">
+    <div className="app-shell min-h-screen lg:grid lg:grid-cols-[260px_minmax(0,1fr)]">
+      <aside className="sidebar border-b border-white/10 lg:border-b-0 lg:border-r lg:border-r-white/10">
+        <a className="brand group" href="#/">
           <span className="brand-mark">FK</span>
           <span>
             <strong>FitKnow</strong>
@@ -264,9 +148,9 @@ function Shell({ active, query, setQuery, children }) {
         </nav>
         <SourceSummary />
       </aside>
-      <div className="workspace">
-        <header className="topbar">
-          <div>
+      <div className="workspace min-w-0">
+        <header className="topbar border-b border-[color:var(--line)] bg-[color:var(--topbar-bg)]">
+          <div className="min-w-0">
             <p className="kicker">饮食 · 训练 · 工具 · 问答</p>
             <h1>{active.label}</h1>
           </div>
@@ -275,7 +159,7 @@ function Shell({ active, query, setQuery, children }) {
             <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="高位下拉 / 鸡胸肉 / 减脂不掉秤" />
           </label>
         </header>
-        <main key={active.id} className="page-enter">{children}</main>
+        <main key={active.id} className="page-enter min-w-0 px-4 py-5 sm:px-6 sm:py-7">{children}</main>
       </div>
     </div>
   );
@@ -284,7 +168,7 @@ function Shell({ active, query, setQuery, children }) {
 function SourceSummary() {
   const data = useAppData();
   return (
-    <div className="source-box">
+    <div className="source-box rounded-3xl border border-white/10 bg-white/5 p-4 shadow-none">
       <b>资料下载</b>
       <a href={excelDownloadPath} download>{data.source}</a>
       <small>更新：{new Date(data.generatedAt).toLocaleString('zh-CN')}</small>
@@ -303,20 +187,20 @@ function Dashboard({ query }) {
   ];
 
   return (
-    <div className="course-layout">
-      <div className="content-stack">
-        <section className="hero-panel">
-          <div>
+    <div className="course-layout gap-4 xl:grid xl:grid-cols-[minmax(0,1fr)_260px]">
+      <div className="content-stack gap-5">
+        <section className="hero-panel overflow-hidden rounded-3xl border border-[color:var(--line)] bg-[linear-gradient(180deg,rgba(251,253,251,0.98)_0%,rgba(255,255,255,1)_100%)] p-6 shadow-sm sm:p-8">
+          <div className="min-w-0">
             <p className="section-label">按目标学习</p>
             <h2>按目标学习饮食、训练和动作知识</h2>
             <p>把减脂、增肌、训练计划、食物营养和常见问题整理成可搜索的学习路径，方便按目标推进和反复查询。</p>
-            <div className="quick-actions">
+            <div className="quick-actions flex flex-wrap gap-3">
               <a href="#/fat-loss">开始减脂路径</a>
               <a href="#/training">选择训练计划</a>
               <a href="#/source">下载资料</a>
             </div>
           </div>
-          <div className="metric-grid">
+          <div className="metric-grid grid grid-cols-2 gap-3">
             <Stat value={data.counts?.dietPlans ?? '-'} label="饮食方案" />
             <Stat value={data.counts?.trainingPlans ?? '-'} label="训练计划" />
             <Stat value={data.counts?.foods ?? '-'} label="食物条目" />
@@ -325,15 +209,15 @@ function Dashboard({ query }) {
         </section>
 
         {query.trim() && (
-          <section className="panel">
+          <section className="panel rounded-3xl border border-[color:var(--line)] bg-[color:var(--paper)] p-6 shadow-sm">
             <PanelTitle title="全局搜索结果" subtitle={`关键词：${query}`} />
             <ResultList items={results} />
           </section>
         )}
 
-        <section className="lesson-grid">
+        <section className="lesson-grid grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
           {lessonCards.map((card) => (
-            <a className="lesson-card" href={card.href} key={card.title}>
+            <a className="lesson-card rounded-3xl border border-[color:var(--line)] bg-[color:var(--paper)] p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-lg" href={card.href} key={card.title}>
               <span>{card.meta}</span>
               <h3>{card.title}</h3>
               <p>{card.text}</p>
@@ -341,7 +225,7 @@ function Dashboard({ query }) {
           ))}
         </section>
 
-        <section className="split-grid">
+        <section className="split-grid grid gap-4 xl:grid-cols-2">
           <CardioCalculator compact />
           <OneRepMaxCalculator compact />
         </section>
@@ -1230,8 +1114,8 @@ function TrainingCourse({ query }) {
     .filter((day) => !query || matches({ ...day, rows: day.exerciseRows }, query) || day.exerciseRows.length);
 
   return (
-    <div className="course-layout">
-      <div className="content-stack">
+    <div className="course-layout gap-4 xl:grid xl:grid-cols-[minmax(0,1fr)_260px]">
+      <div className="content-stack gap-5">
         <section className="panel">
           <PanelTitle title="分化训练课程" subtitle="按场景和分化方式选择计划，再进入每一天的部位、组数、动作和关节提示。" />
           <Segmented items={data.trainingPlans} selectedId={plan.id} onSelect={setPlanId} getLabel={(item) => item.title} />
@@ -1469,7 +1353,7 @@ function ModuleRail({ moduleId }) {
   const module = moduleDetails[moduleId] || moduleDetails.dashboard;
   const relatedRoutes = routes.filter((route) => route.id !== moduleId).slice(0, 6);
   return (
-    <aside className="module-rail">
+    <aside className="module-rail rounded-3xl border border-[color:var(--line)] bg-[color:var(--rail)] p-5 shadow-sm xl:sticky xl:top-24">
       <p className="section-label">模块概览</p>
       <h2>{module.label}</h2>
       <p>{module.description}</p>
@@ -1692,32 +1576,6 @@ function getTrainingGroupRowSpan(rows, startIndex, key) {
   return span;
 }
 
-function PanelTitle({ title, subtitle }) {
-  return (
-    <div className="panel-title">
-      <h2>{title}</h2>
-      {subtitle && <p>{subtitle}</p>}
-    </div>
-  );
-}
-
-function Stat({ value, label }) {
-  return (
-    <div className="stat">
-      <strong>{value}</strong>
-      <span>{label}</span>
-    </div>
-  );
-}
-
-function Field({ label, children }) {
-  return <label className="field"><span>{label}</span>{children}</label>;
-}
-
-function Empty({ text }) {
-  return <p className="empty">{text}</p>;
-}
-
 function Lightbox({ image, close }) {
   return (
     <div className="lightbox" onClick={close}>
@@ -1730,8 +1588,4 @@ function Lightbox({ image, close }) {
   );
 }
 
-createRoot(document.getElementById('root')).render(
-  <ErrorBoundary>
-    <App />
-  </ErrorBoundary>
-);
+export default App;
