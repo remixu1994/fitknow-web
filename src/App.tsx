@@ -1,5 +1,7 @@
 // @ts-nocheck
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { toPng } from 'html-to-image';
+import ExportCard from './components/ExportCard';
 import { Empty, Field, PageLoading, PanelTitle, Stat } from './components/ui/course-primitives';
 import { DataContext, useAppData } from './lib/app-data';
 import { deleteCalorieRecord, getCalorieRecords, upsertCalorieRecord } from './lib/calorie-store';
@@ -469,6 +471,24 @@ function GoalInputPlanner({ goal, plan, query = '', topSelector = null, pathSele
   const isNoStrength = isFatLoss && isNoStrengthPlan(plan);
   const category = isFatLoss ? '减脂' : '增肌';
 
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exportPlatform, setExportPlatform] = useState(null);
+  const exportCardRef = useRef(null);
+
+  const handleExport = async (platform) => {
+    setExportPlatform(platform);
+    setExportOpen(false);
+    await new Promise((resolve) => setTimeout(resolve, 120));
+    if (exportCardRef.current) {
+      const dataUrl = await toPng(exportCardRef.current, { pixelRatio: 3 });
+      const link = document.createElement('a');
+      link.download = `fitknow-fat-loss-${platform}-${Date.now()}.png`;
+      link.href = dataUrl;
+      link.click();
+    }
+    setExportPlatform(null);
+  };
+
   return (
     <div className="planner-panel">
       <div className="planner-head">
@@ -477,6 +497,20 @@ function GoalInputPlanner({ goal, plan, query = '', topSelector = null, pathSele
           <h3>{category}目标计算器</h3>
           <p>{isFatLoss ? '估算无运动总消耗、力训/休息日平衡热量和应吃热量，再结合配额表拆到每餐。' : '估算无运动总消耗、力训/休息日平衡热量和应吃热量，再结合增肌配额拆到每餐。'}</p>
         </div>
+        {isFatLoss && (
+          <div className="export-controls">
+            <button className="export-btn" onClick={() => setExportOpen((v) => !v)}>
+              导出图片
+            </button>
+            {exportOpen && (
+              <div className="export-dropdown">
+                <button onClick={() => handleExport('wechat')}>微信分享图 (9:16)</button>
+                <button onClick={() => handleExport('douyin')}>抖音封面图 (9:16)</button>
+                <button onClick={() => handleExport('xiaohongshu')}>小红书 (3:4)</button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {topSelector}
@@ -514,6 +548,13 @@ function GoalInputPlanner({ goal, plan, query = '', topSelector = null, pathSele
 
       {pathSelector}
       <StructuredMealTables plan={plan} metrics={metrics} query={query} />
+      {exportPlatform && (
+        <div style={{ position: 'fixed', left: '-9999px', top: 0 }}>
+          <div ref={exportCardRef}>
+            <ExportCard profile={profile} metrics={metrics} plan={plan} platform={exportPlatform} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

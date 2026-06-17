@@ -459,6 +459,54 @@ main {
   margin-bottom: 0;
   color: var(--muted);
 }
+
+/* Export button & dropdown */
+.export-btn {
+  padding: 8px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-size: 14px;
+  cursor: pointer;
+  white-space: nowrap;
+  font-weight: 700;
+}
+.export-btn:hover {
+  background: var(--accent);
+  color: #fff;
+}
+.export-controls {
+  position: relative;
+}
+.export-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  background: var(--paper);
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  z-index: 100;
+  min-width: 180px;
+  overflow: hidden;
+}
+.export-dropdown button {
+  display: block;
+  width: 100%;
+  padding: 10px 14px;
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--ink);
+  font-weight: 500;
+}
+.export-dropdown button:hover {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
 .profile-form {
   display: grid;
   grid-template-columns: repeat(6, minmax(120px, 1fr));
@@ -1667,6 +1715,191 @@ main > * {
 .not-found h2 { font-size: 64px; color: var(--muted); }
 .not-found p { color: var(--muted); font-size: 18px; margin-bottom: 24px; }
 .not-found a { display: inline-block; padding: 12px 24px; border-radius: 8px; background: var(--accent); color: #fff; font-weight: 700; text-decoration: none; }
+
+/* Export card styles */
+.export-card {
+  padding: 24px;
+  background: linear-gradient(180deg, #fbfdfb 0%, #ffffff 100%);
+  border-radius: 12px;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+  color: #17231d;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.export-card.platform-wechat,
+.export-card.platform-douyin {
+  width: 360px;
+  min-height: 640px;
+}
+.export-card.platform-xiaohongshu {
+  width: 414px;
+  min-height: 553px;
+}
+
+.export-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid var(--accent-soft);
+  padding-bottom: 12px;
+}
+.export-card-brand {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.export-card-logo {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--accent-strong);
+}
+.export-card-tag {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--accent-soft);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+.export-card-platform {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.export-card-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.export-card-section-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.export-card-user-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+.export-card-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px;
+  border-radius: 8px;
+  background: var(--accent-soft);
+  text-align: center;
+}
+.export-card-stat strong {
+  font-size: 20px;
+  color: var(--accent-strong);
+  line-height: 1.2;
+}
+.export-card-stat span {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.export-card-results-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+.export-card-result-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid var(--line);
+}
+.export-card-result-item.wide {
+  grid-column: 1 / -1;
+}
+.export-card-result-label {
+  font-size: 12px;
+  color: var(--muted);
+}
+.export-card-result-value {
+  font-size: 22px;
+  color: var(--orange);
+  line-height: 1.2;
+}
+
+.export-card-macro-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.export-card-macro-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--accent-soft);
+  text-align: center;
+}
+.export-card-macro-label {
+  font-size: 12px;
+  color: var(--muted);
+}
+.export-card-macro-value {
+  font-size: 24px;
+  color: var(--accent-strong);
+  line-height: 1.2;
+}
+
+.export-card-goal {
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--orange-soft);
+  border-left: 4px solid var(--orange);
+}
+.export-card-goal p {
+  margin: 0 0 6px;
+  font-size: 13px;
+  color: var(--ink);
+  line-height: 1.5;
+}
+.export-card-goal p:last-child {
+  margin-bottom: 0;
+}
+.export-card-deficit {
+  font-weight: 700;
+  color: var(--orange) !important;
+}
+
+.export-card-footer {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+@media (max-width: 640px) {
+  .export-btn {
+    padding: 7px 12px;
+    font-size: 13px;
+  }
+  .export-dropdown {
+    min-width: 160px;
+  }
+  .export-dropdown button {
+    padding: 9px 12px;
+    font-size: 13px;
+  }
+}
 
 /* 餐次分配 */
 .meal-planner { margin-top: 18px; }
