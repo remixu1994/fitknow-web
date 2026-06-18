@@ -306,3 +306,15 @@ export type NutritionMetrics = {
   restProtein?: number;
   restFat?: number;
 };
+
+export type DailyCalorieDayType = 'training' | 'rest' | 'daily';
+
+export type DailyCalorieRecord = {
+  date: string;
+  intakeCalories: number;
+  dayType: DailyCalorieDayType;
+  tdee: number;
+  deficit: number;
+  createdAt: string;
+  updatedAt: string;
+};

@@ -1,7 +1,8 @@
 // @ts-nocheck
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Empty, Field, PageLoading, PanelTitle, Stat } from './components/ui/course-primitives';
 import { DataContext, useAppData } from './lib/app-data';
+import { deleteCalorieRecord, getCalorieRecords, upsertCalorieRecord } from './lib/calorie-store';
 import { coreLoader, routeFromHash, routeLoaders } from './lib/data-loaders';
 import {
   femaleMuscleGainRatios,
@@ -509,10 +510,662 @@ function GoalInputPlanner({ goal, plan, query = '', topSelector = null, pathSele
         <p>{metrics.targetWeightText}</p>
       </div>
 
+      {isFatLoss && <CalorieDeficitTracker metrics={metrics} noStrength={isNoStrength} />}
+
       {pathSelector}
       <StructuredMealTables plan={plan} metrics={metrics} query={query} />
     </div>
   );
+}
+
+const BODY_FAT_KCAL_PER_KG = 7700;
+
+function CalorieDeficitTracker({ metrics, noStrength }) {
+  const [records, setRecords] = useState([]);
+  const [date, setDate] = useState(() => getLocalDateString());
+  const [intakeCalories, setIntakeCalories] = useState('');
+  const [dayType, setDayType] = useState(noStrength ? 'daily' : 'training');
+  const [editingDate, setEditingDate] = useState('');
+  const [editingIntakeCalories, setEditingIntakeCalories] = useState('');
+  const [editingDayType, setEditingDayType] = useState(noStrength ? 'daily' : 'training');
+  const [isSaving, setIsSaving] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+  const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    let active = true;
+
+    getCalorieRecords().then((loadedRecords) => {
+      if (active) setRecords(loadedRecords);
+    }).catch((storageError) => {
+      console.error('Failed to load calorie records', storageError);
+      if (active) setError(storageError.message || '读取本地热量记录失败。');
+    });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    setDayType((current) => {
+      if (noStrength) return 'daily';
+      return current === 'daily' ? 'training' : current;
+    });
+    setEditingDayType((current) => {
+      if (noStrength) return 'daily';
+      return current === 'daily' ? 'training' : current;
+    });
+  }, [noStrength]);
+
+  useEffect(() => {
+    const existing = records.find((record) => record.date === date);
+    if (existing) {
+      setIntakeCalories(String(existing.intakeCalories));
+      setDayType(noStrength ? 'daily' : existing.dayType === 'daily' ? 'training' : existing.dayType);
+      return;
+    }
+
+    setIntakeCalories('');
+    setDayType(noStrength ? 'daily' : 'training');
+  }, [date, records, noStrength]);
+
+  const normalizedDayType = noStrength ? 'daily' : dayType === 'rest' ? 'rest' : 'training';
+  const selectedTdee = getTdeeForDayType(metrics, normalizedDayType);
+  const parsedIntake = Number.parseFloat(intakeCalories);
+  const hasValidIntake = Number.isFinite(parsedIntake) && parsedIntake >= 0;
+  const currentDeficit = hasValidIntake ? Math.round(selectedTdee - parsedIntake) : null;
+  const selectedDateRecord = records.find((record) => record.date === date);
+  const recentRecords = records.slice(0, 14);
+  const recent7Records = useMemo(() => {
+    const startDate = getLocalDateString(-6);
+    const endDate = getLocalDateString();
+    return records.filter((record) => record.date >= startDate && record.date <= endDate);
+  }, [records]);
+  const averageDeficit = recent7Records.length
+    ? Math.round(recent7Records.reduce((sum, record) => sum + record.deficit, 0) / recent7Records.length)
+    : null;
+  const predictedDays = averageDeficit && averageDeficit > 0
+    ? Math.ceil(BODY_FAT_KCAL_PER_KG / averageDeficit)
+    : null;
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setMessage('');
+    setError('');
+
+    if (!date) {
+      setError('请先选择日期。');
+      return;
+    }
+
+    if (!hasValidIntake) {
+      setError('请输入有效的每日实际饮食热量。');
+      return;
+    }
+
+    if (!selectedTdee) {
+      setError('当前 TDEE 无法计算，请先检查身高、体重、年龄和运动消耗。');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const roundedIntake = Math.round(parsedIntake);
+      const savedRecord = await upsertCalorieRecord({
+        date,
+        intakeCalories: roundedIntake,
+        dayType: normalizedDayType,
+        tdee: selectedTdee,
+        deficit: Math.round(selectedTdee - roundedIntake),
+      });
+
+      setRecords((current) => sortCalorieRecords([
+        savedRecord,
+        ...current.filter((record) => record.date !== savedRecord.date),
+      ]));
+      setMessage(selectedDateRecord ? '已更新当天记录。' : '已保存当天记录。');
+    } catch (storageError) {
+      console.error('Failed to save calorie record', storageError);
+      setError(storageError.message || '保存本地热量记录失败。');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleEdit = (record) => {
+    setEditingDate(record.date);
+    setEditingIntakeCalories(String(record.intakeCalories));
+    setEditingDayType(noStrength ? 'daily' : record.dayType === 'daily' ? 'training' : record.dayType);
+    setMessage('');
+    setError('');
+  };
+
+  const handleCancelEdit = () => {
+    setEditingDate('');
+    setEditingIntakeCalories('');
+    setEditingDayType(noStrength ? 'daily' : 'training');
+    setMessage('');
+    setError('');
+  };
+
+  const handleSaveInlineEdit = async (record) => {
+    const normalizedEditDayType = noStrength ? 'daily' : editingDayType === 'rest' ? 'rest' : 'training';
+    const parsedEditIntake = Number.parseFloat(editingIntakeCalories);
+    const editTdee = getTdeeForDayType(metrics, normalizedEditDayType);
+
+    setMessage('');
+    setError('');
+
+    if (!Number.isFinite(parsedEditIntake) || parsedEditIntake < 0) {
+      setError('请输入有效的每日实际饮食热量。');
+      return;
+    }
+
+    if (!editTdee) {
+      setError('当前 TDEE 无法计算，请先检查身高、体重、年龄和运动消耗。');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const roundedIntake = Math.round(parsedEditIntake);
+      const savedRecord = await upsertCalorieRecord({
+        date: record.date,
+        intakeCalories: roundedIntake,
+        dayType: normalizedEditDayType,
+        tdee: editTdee,
+        deficit: Math.round(editTdee - roundedIntake),
+      });
+
+      setRecords((current) => sortCalorieRecords([
+        savedRecord,
+        ...current.filter((currentRecord) => currentRecord.date !== savedRecord.date),
+      ]));
+      setEditingDate('');
+      setEditingIntakeCalories('');
+      setMessage('已更新当天记录。');
+    } catch (storageError) {
+      console.error('Failed to save calorie record', storageError);
+      setError(storageError.message || '保存本地热量记录失败。');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDelete = async (recordDate) => {
+    setMessage('');
+    setError('');
+
+    try {
+      await deleteCalorieRecord(recordDate);
+      setRecords((current) => current.filter((record) => record.date !== recordDate));
+      if (recordDate === date) setIntakeCalories('');
+      if (recordDate === editingDate) handleCancelEdit();
+      setMessage('已删除记录。');
+    } catch (storageError) {
+      console.error('Failed to delete calorie record', storageError);
+      setError(storageError.message || '删除本地热量记录失败。');
+    }
+  };
+
+  const handleExport = () => {
+    setMessage('');
+    setError('');
+
+    if (!records.length) {
+      setError('还没有可导出的热量记录。');
+      return;
+    }
+
+    downloadCalorieRecordsAsExcel(records);
+    setMessage('已导出 Excel 文件。');
+  };
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleImportFile = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    setMessage('');
+    setError('');
+
+    if (!file) return;
+
+    if (file.name.toLowerCase().endsWith('.xlsx')) {
+      setError('暂不支持直接导入 .xlsx，请先另存为 CSV，或导入本功能导出的 .xls 文件。');
+      return;
+    }
+
+    setIsImporting(true);
+    try {
+      const text = await file.text();
+      const importedRecords = parseImportedCalorieRecords(text, metrics, noStrength);
+
+      if (!importedRecords.length) {
+        setError('没有识别到可导入的有效记录。');
+        return;
+      }
+
+      const savedRecords = [];
+      for (const importedRecord of importedRecords) {
+        const savedRecord = await upsertCalorieRecord(importedRecord);
+        savedRecords.push(savedRecord);
+      }
+
+      setRecords((current) => sortCalorieRecords([
+        ...savedRecords,
+        ...current.filter((record) => !savedRecords.some((savedRecord) => savedRecord.date === record.date)),
+      ]));
+      setMessage(`已导入 ${savedRecords.length} 条记录。`);
+    } catch (importError) {
+      console.error('Failed to import calorie records', importError);
+      setError(importError.message || '导入失败，请检查文件格式。');
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  return (
+    <section className="calorie-tracker" aria-labelledby="calorie-tracker-title">
+      <div className="calorie-tracker-head">
+        <div>
+          <p className="section-label">本地记录</p>
+          <h3 id="calorie-tracker-title">每日热量缺口</h3>
+          <p>输入每日实际饮食热量，按 TDEE - 摄入计算缺口，并用最近 7 天记录预测减 1kg 脂肪需要多久。</p>
+        </div>
+        <div className="calorie-tracker-side">
+          <div className="calorie-tracker-formula">
+            <strong>1kg 体脂 ≈ 7700 kcal</strong>
+            <span>天数 = 7700 ÷ 平均每日缺口</span>
+          </div>
+          <div className="calorie-file-actions">
+            <button type="button" onClick={handleExport}>导出 Excel</button>
+            <button type="button" onClick={handleImportClick} disabled={isImporting}>
+              {isImporting ? '导入中' : '导入数据'}
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".xls,.csv,.tsv,.txt,.json"
+              onChange={handleImportFile}
+            />
+          </div>
+        </div>
+      </div>
+
+      <form className="calorie-entry-form" onSubmit={handleSubmit}>
+        <Field label="日期">
+          <input type="date" value={date} onChange={(event) => setDate(event.target.value)} />
+        </Field>
+        <Field label="日类型">
+          <select value={normalizedDayType} onChange={(event) => setDayType(event.target.value)} disabled={noStrength}>
+            <option value="training">力训日</option>
+            <option value="rest">休息日</option>
+            <option value="daily">每日</option>
+          </select>
+        </Field>
+        <Field label="实际摄入 kcal">
+          <input
+            inputMode="decimal"
+            min="0"
+            placeholder="例如 1800"
+            value={intakeCalories}
+            onChange={(event) => setIntakeCalories(event.target.value)}
+          />
+        </Field>
+        <button className="calorie-save-button" type="submit" disabled={isSaving}>
+          {isSaving ? '保存中' : selectedDateRecord ? '更新记录' : '保存记录'}
+        </button>
+      </form>
+
+      <div className="calorie-stat-grid">
+        <Stat value={`${selectedTdee || '-'} kcal`} label={`${dayTypeLabel(normalizedDayType)} TDEE`} />
+        <Stat value={hasValidIntake ? `${Math.round(parsedIntake)} kcal` : '-'} label="当日摄入" />
+        <Stat value={currentDeficit === null ? '-' : `${Math.abs(currentDeficit)} kcal`} label={deficitLabel(currentDeficit)} />
+        <Stat value={predictedDays ? `${predictedDays} 天` : '-'} label="预计减 1kg 脂肪" />
+      </div>
+
+      <div className="calorie-forecast">
+        <b>最近 7 天平均缺口</b>
+        <p>
+          {averageDeficit === null
+            ? '还没有最近 7 天记录，保存每日摄入后会自动计算。'
+            : averageDeficit > 0
+              ? `已有 ${recent7Records.length} 条记录，平均每日缺口 ${averageDeficit} kcal，预计约 ${predictedDays} 天减少 1kg 脂肪。`
+              : `已有 ${recent7Records.length} 条记录，当前平均不是热量缺口，无法预测减脂时间。`}
+        </p>
+      </div>
+
+      {(message || error) && (
+        <p className={error ? 'calorie-message error' : 'calorie-message'}>
+          {error || message}
+        </p>
+      )}
+
+      <div className="calorie-records">
+        <div className="calorie-records-head">
+          <h4>最近记录</h4>
+          <span>最多显示 14 条</span>
+        </div>
+        {recentRecords.length ? (
+          <div className="calorie-record-list">
+            {recentRecords.map((record) => {
+              const isEditing = editingDate === record.date;
+              const normalizedEditingDayType = noStrength ? 'daily' : editingDayType === 'rest' ? 'rest' : 'training';
+              const editTdee = getTdeeForDayType(metrics, normalizedEditingDayType);
+              const parsedEditingIntake = Number.parseFloat(editingIntakeCalories);
+              const editingDeficit = Number.isFinite(parsedEditingIntake)
+                ? Math.round(editTdee - parsedEditingIntake)
+                : null;
+
+              return (
+                <article className={`calorie-record ${isEditing ? 'is-editing' : ''}`} key={record.date}>
+                  <div>
+                    <strong>{record.date}</strong>
+                    {isEditing ? (
+                      <div className="calorie-inline-fields">
+                        <label>
+                          <span>日类型</span>
+                          <select value={normalizedEditingDayType} onChange={(event) => setEditingDayType(event.target.value)} disabled={noStrength}>
+                            <option value="training">力训日</option>
+                            <option value="rest">休息日</option>
+                            <option value="daily">每日</option>
+                          </select>
+                        </label>
+                        <label>
+                          <span>实际摄入 kcal</span>
+                          <input
+                            inputMode="decimal"
+                            min="0"
+                            value={editingIntakeCalories}
+                            onChange={(event) => setEditingIntakeCalories(event.target.value)}
+                          />
+                        </label>
+                      </div>
+                    ) : (
+                      <span>{dayTypeLabel(record.dayType)} · TDEE {record.tdee} kcal · 摄入 {record.intakeCalories} kcal</span>
+                    )}
+                  </div>
+                  <b className={(isEditing ? editingDeficit ?? record.deficit : record.deficit) >= 0 ? 'deficit' : 'surplus'}>
+                    {isEditing && editingDeficit !== null ? deficitSummary(editingDeficit) : deficitSummary(record.deficit)}
+                  </b>
+                  <div className="calorie-record-actions">
+                    {isEditing ? (
+                      <>
+                        <button type="button" onClick={() => handleSaveInlineEdit(record)} disabled={isSaving}>
+                          {isSaving ? '保存中' : '保存'}
+                        </button>
+                        <button type="button" onClick={handleCancelEdit}>取消</button>
+                      </>
+                    ) : (
+                      <>
+                        <button type="button" onClick={() => handleEdit(record)}>编辑</button>
+                        <button type="button" onClick={() => handleDelete(record.date)}>删除</button>
+                      </>
+                    )}
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="empty">还没有热量记录。</p>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function getLocalDateString(offsetDays = 0) {
+  const date = new Date();
+  date.setDate(date.getDate() + offsetDays);
+  date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+  return date.toISOString().slice(0, 10);
+}
+
+function sortCalorieRecords(records) {
+  return [...records].sort((left, right) => right.date.localeCompare(left.date));
+}
+
+function getTdeeForDayType(metrics, dayType) {
+  if (dayType === 'training') return Math.round(Number(metrics.trainingMaintenanceCalories || 0));
+  if (dayType === 'rest') return Math.round(Number(metrics.restMaintenanceCalories || 0));
+  return Math.round(Number(metrics.maintenanceCalories || metrics.restMaintenanceCalories || 0));
+}
+
+function dayTypeLabel(dayType) {
+  if (dayType === 'training') return '力训日';
+  if (dayType === 'rest') return '休息日';
+  return '每日';
+}
+
+function deficitLabel(deficit) {
+  if (deficit === null) return '缺口 / 盈余';
+  if (deficit > 0) return '当日热量缺口';
+  if (deficit < 0) return '当日热量盈余';
+  return '当日热量平衡';
+}
+
+function deficitSummary(deficit) {
+  if (deficit > 0) return `缺口 ${deficit} kcal`;
+  if (deficit < 0) return `盈余 ${Math.abs(deficit)} kcal`;
+  return '平衡 0 kcal';
+}
+
+function downloadCalorieRecordsAsExcel(records) {
+  const headers = ['日期', '日类型', '实际摄入 kcal', 'TDEE kcal', '缺口 kcal', '创建时间', '更新时间'];
+  const rows = sortCalorieRecords(records).map((record) => [
+    record.date,
+    dayTypeLabel(record.dayType),
+    record.intakeCalories,
+    record.tdee,
+    record.deficit,
+    record.createdAt,
+    record.updatedAt,
+  ]);
+  const tableRows = [headers, ...rows]
+    .map((row) => `<tr>${row.map((cell) => `<td>${escapeHtml(cell)}</td>`).join('')}</tr>`)
+    .join('');
+  const html = `\uFEFF<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <style>
+    table { border-collapse: collapse; font-family: Arial, sans-serif; }
+    th, td { border: 1px solid #d9e2dc; padding: 6px 10px; }
+    tr:first-child td { background: #16724f; color: #ffffff; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <table>${tableRows}</table>
+</body>
+</html>`;
+  const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+
+  link.href = url;
+  link.download = `fitknow-calorie-records-${getLocalDateString()}.xls`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function parseImportedCalorieRecords(text, metrics, noStrength) {
+  const rows = parseImportedRows(text);
+
+  return rows.map((row) => normalizeImportedCalorieRecord(row, metrics, noStrength)).filter(Boolean);
+}
+
+function parseImportedRows(text) {
+  const trimmed = text.trim();
+  if (!trimmed) return [];
+
+  if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+    const parsed = JSON.parse(trimmed);
+    if (Array.isArray(parsed)) return parsed;
+    if (Array.isArray(parsed.records)) return parsed.records;
+    if (Array.isArray(parsed.dailyCalorieRecords)) return parsed.dailyCalorieRecords;
+    return [];
+  }
+
+  if (/<table[\s>]/i.test(trimmed)) {
+    return tableRowsToObjects(parseHtmlTableRows(trimmed));
+  }
+
+  const delimiter = trimmed.includes('\t') ? '\t' : ',';
+  return tableRowsToObjects(parseDelimitedRows(trimmed, delimiter));
+}
+
+function parseHtmlTableRows(html) {
+  const document = new DOMParser().parseFromString(html, 'text/html');
+  return Array.from(document.querySelectorAll('tr')).map((row) => (
+    Array.from(row.querySelectorAll('th,td')).map((cell) => cell.textContent?.trim() || '')
+  )).filter((row) => row.some(Boolean));
+}
+
+function parseDelimitedRows(text, delimiter) {
+  const rows = [];
+  let row = [];
+  let cell = '';
+  let inQuotes = false;
+
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index];
+    const nextChar = text[index + 1];
+
+    if (char === '"') {
+      if (inQuotes && nextChar === '"') {
+        cell += '"';
+        index += 1;
+      } else {
+        inQuotes = !inQuotes;
+      }
+      continue;
+    }
+
+    if (!inQuotes && char === delimiter) {
+      row.push(cell.trim());
+      cell = '';
+      continue;
+    }
+
+    if (!inQuotes && (char === '\n' || char === '\r')) {
+      if (char === '\r' && nextChar === '\n') index += 1;
+      row.push(cell.trim());
+      if (row.some(Boolean)) rows.push(row);
+      row = [];
+      cell = '';
+      continue;
+    }
+
+    cell += char;
+  }
+
+  row.push(cell.trim());
+  if (row.some(Boolean)) rows.push(row);
+  return rows;
+}
+
+function tableRowsToObjects(rows) {
+  if (rows.length < 2) return [];
+  const headers = rows[0].map((header) => normalizeImportHeader(header));
+
+  return rows.slice(1).map((row) => headers.reduce((object, header, index) => {
+    if (header) object[header] = row[index] ?? '';
+    return object;
+  }, {}));
+}
+
+function normalizeImportedCalorieRecord(row, metrics, noStrength) {
+  const date = normalizeImportDate(readImportField(row, ['date', '日期']));
+  const intakeCalories = parseImportNumber(readImportField(row, ['intakeCalories', 'actualIntake', 'intake', '实际摄入 kcal', '实际摄入', '摄入', '摄入热量']));
+  const dayType = normalizeImportDayType(readImportField(row, ['dayType', 'type', '日类型', '类型']), noStrength);
+  const fallbackTdee = getTdeeForDayType(metrics, dayType);
+  const importedTdee = parseImportNumber(readImportField(row, ['tdee', 'TDEE kcal', 'TDEE', '每日总消耗']));
+  const tdee = importedTdee > 0 ? importedTdee : fallbackTdee;
+  const importedDeficit = parseImportNumber(readImportField(row, ['deficit', '缺口 kcal', '热量缺口', '缺口']));
+
+  if (!date || !Number.isFinite(intakeCalories) || intakeCalories < 0 || !tdee) return null;
+
+  return {
+    date,
+    intakeCalories: Math.round(intakeCalories),
+    dayType,
+    tdee: Math.round(tdee),
+    deficit: Number.isFinite(importedDeficit)
+      ? Math.round(importedDeficit)
+      : Math.round(tdee - intakeCalories),
+  };
+}
+
+function readImportField(row, keys) {
+  for (const key of keys) {
+    if (row[key] !== undefined && row[key] !== null && `${row[key]}`.trim() !== '') return row[key];
+    const normalizedKey = normalizeImportHeader(key);
+    if (row[normalizedKey] !== undefined && row[normalizedKey] !== null && `${row[normalizedKey]}`.trim() !== '') {
+      return row[normalizedKey];
+    }
+  }
+  return '';
+}
+
+function normalizeImportHeader(value) {
+  return `${value || ''}`
+    .replace(/\s+/g, '')
+    .replace(/[()（）]/g, '')
+    .toLowerCase();
+}
+
+function normalizeImportDate(value) {
+  const text = `${value || ''}`.trim();
+  if (!text) return '';
+
+  if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(text) || /^\d{4}\/\d{1,2}\/\d{1,2}$/.test(text)) {
+    const [year, month, day] = text.replace(/\//g, '-').split('-').map(Number);
+    return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  }
+
+  if (/^\d+(\.\d+)?$/.test(text)) {
+    const serial = Number.parseFloat(text);
+    if (serial > 20000 && serial < 80000) {
+      const date = new Date(Date.UTC(1899, 11, 30) + serial * 86400000);
+      return date.toISOString().slice(0, 10);
+    }
+  }
+
+  return '';
+}
+
+function normalizeImportDayType(value, noStrength) {
+  if (noStrength) return 'daily';
+
+  const text = `${value || ''}`.trim().toLowerCase();
+  if (text.includes('rest') || text.includes('休息')) return 'rest';
+  if (text.includes('daily') || text.includes('每日') || text.includes('无力训')) return 'daily';
+  return 'training';
+}
+
+function parseImportNumber(value) {
+  if (typeof value === 'number') return value;
+  const text = `${value || ''}`.replace(/,/g, '').trim();
+  if (!text) return Number.NaN;
+  return Number.parseFloat(text);
+}
+
+function escapeHtml(value) {
+  return `${value ?? ''}`
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 function computeNutrition(goal, profile, plan) {
