@@ -79,3 +79,20 @@ npm run verify:data
 页面中的热量、营养素和训练建议仅供参考，不能替代医生、营养师、康复师或专业教练的个性化建议。如果存在疾病、伤病、特殊饮食要求或训练风险，请优先咨询专业人士。
 
 如需了解原始内容背景、表格使用方法或作者更新，请关注 B 站博主 [好人松松](https://space.bilibili.com/2078781964?spm_id_from=333.1391.0.0)。
+
+## Development Requirements
+
+- Node.js 18+ or 20+
+- npm
+- Python 3.10+ available on PATH as `python`
+
+Recommended verification commands before commit:
+
+```bash
+npm run extract
+npm run verify:data
+npm run typecheck
+npm run build
+```
+
+The helper script first tries system `python`, then `py`, and finally falls back to the local Codex runtime Python when available.
