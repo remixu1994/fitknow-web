@@ -4,11 +4,34 @@ export type SourceRef = {
   row: number;
 };
 
+export type RouteId =
+  | 'dashboard'
+  | 'fat-loss'
+  | 'muscle-gain'
+  | 'training'
+  | 'tools'
+  | 'foods'
+  | 'qa'
+  | 'anatomy'
+  | 'source';
+
 export type RouteItem = {
-  id: string;
+  id: RouteId;
   hash: string;
   label: string;
   mark: string;
+};
+
+export type RouteConfig = RouteItem;
+
+export type RouteDataPayload = Record<string, unknown> & {
+  loadError?: Error;
+};
+
+export type RouteDataState<TPayload extends RouteDataPayload = RouteDataPayload> = {
+  routeKey: RouteId | null;
+  queryKey: string | null;
+  payload: TPayload;
 };
 
 export type CoreData = {
@@ -175,6 +198,12 @@ export type ImageItem = {
   anchor: string;
 };
 
+export type LightboxImage = ImageItem & {
+  title: string;
+};
+
+export type LightboxState = LightboxImage | null;
+
 export type MuscleSection = {
   title: string;
   rows: MuscleRow[];
@@ -257,6 +286,26 @@ export type Profile = {
   cardioCalories: string;
 };
 
+export type DietProfile = Profile;
+
+export type MealTarget = {
+  carbTotal: number;
+  proteinTotal: number;
+  carb: number;
+  protein: number;
+};
+
+export type FoodRateInfo = {
+  mode: 'unit' | 'gram';
+  rate: number;
+  unit: string;
+};
+
+export type FoodConversionResult = {
+  value: number;
+  unit: string;
+};
+
 export type QuotaMatch = {
   trainingCarb?: number;
   restCarb?: number;
@@ -306,6 +355,8 @@ export type NutritionMetrics = {
   restProtein?: number;
   restFat?: number;
 };
+
+export type NutritionResult = NutritionMetrics;
 
 export type DailyCalorieDayType = 'training' | 'rest' | 'daily';
 

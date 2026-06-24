@@ -13,6 +13,7 @@ if (scriptArgs.length === 0) {
 const candidates = [
   process.env.PYTHON,
   'python',
+  'python3',
   'py',
   path.join(process.env.USERPROFILE || '', '.cache', 'codex-runtimes', 'codex-primary-runtime', 'dependencies', 'python', 'python.exe'),
 ].filter(Boolean);
