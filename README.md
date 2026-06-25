@@ -84,15 +84,25 @@ npm run verify:data
 
 - Node.js 18+ or 20+
 - npm
-- Python 3.10+ available on PATH as `python`
+- Python 3.10+ available on PATH as `python`, `python3`, or Windows `py`
+- `openpyxl` installed for `npm run extract`
+
+Install Python dependencies when regenerating data:
+
+```bash
+python -m pip install openpyxl
+# or, on systems where Python is exposed as python3:
+python3 -m pip install openpyxl
+```
 
 Recommended verification commands before commit:
 
 ```bash
 npm run extract
 npm run verify:data
+npm test
 npm run typecheck
 npm run build
 ```
 
-The helper script first tries system `python`, then `py`, and finally falls back to the local Codex runtime Python when available.
+`scripts/run-python.mjs` tries `PYTHON`, then `python`, `python3`, `py`, and finally falls back to the local Codex runtime Python when available. `npm run verify:data` uses only the Python standard library for image checks; `npm run extract` requires `openpyxl`.

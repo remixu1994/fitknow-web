@@ -4,7 +4,7 @@ import { Shell } from './components/layout/Shell';
 import { Empty, PageLoading } from './components/ui/course-primitives';
 import { DataContext } from './lib/app-data';
 import type { AppData } from './lib/app-data';
-import { coreLoader, routeFromHash, routeLoaders } from './lib/data-loaders';
+import { coreLoader, loadRouteData, routeFromHash } from './lib/data-loaders';
 import { AnatomyCourseRoute } from './routes/AnatomyCourse';
 import { DashboardRoute } from './routes/DashboardRoute';
 import { DietCourseRoute } from './routes/DietCourse';
@@ -78,16 +78,10 @@ function App() {
 
   useEffect(() => {
     let activeLoad = true;
-    const loader = routeLoaders[routeKey] || routeLoaders.dashboard;
     setIsLoadingData(true);
-    loader({ query }).then((data) => {
+    loadRouteData(routeKey, query).then((data) => {
       if (!activeLoad) return;
       setRouteData({ routeKey, queryKey, payload: data });
-      setIsLoadingData(false);
-    }).catch((error) => {
-      console.error('Failed to load route data', error);
-      if (!activeLoad) return;
-      setRouteData({ routeKey, queryKey, payload: { loadError: error } });
       setIsLoadingData(false);
     });
     return () => {
