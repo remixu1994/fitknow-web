@@ -40,13 +40,19 @@ export function ModuleRail({ moduleId, routes }: { moduleId: RouteId; routes: Ro
 export function QaList({ items }: { items: QA[] }) {
   return (
     <div className="qa-list">
-      {items.map((item, index) => (
-        <details className="qa-item" key={`${item.id}-${index}`}>
-          <summary><span>{item.category}</span>{item.question}</summary>
-          <p>{item.answer || '暂无答案'}</p>
-        </details>
-      ))}
-      {!items.length && <Empty text="没有匹配的问答" />}
+      {items.map((item, index) => {
+        const answerSections = (item.answer || '\u6682\u65e0\u7b54\u6848').split(/\n{2,}/).map((section) => section.trim()).filter(Boolean);
+
+        return (
+          <details className="qa-item" key={`${item.id}-${index}`}>
+            <summary><span>{item.category}</span><b>{item.question}</b></summary>
+            <div className="qa-answer">
+              {answerSections.map((section, sectionIndex) => <p key={sectionIndex}>{section}</p>)}
+            </div>
+          </details>
+        );
+      })}
+      {!items.length && <Empty text="\u6ca1\u6709\u5339\u914d\u7684\u95ee\u7b54" />}
     </div>
   );
 }

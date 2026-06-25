@@ -13,7 +13,7 @@ interface ExportCardProps {
 export default function ExportCard({ profile, metrics, plan, platform }: ExportCardProps) {
   const isNoStrength = plan?.title?.includes('无力训者');
   const quota = metrics.quotaMatch;
-  const weight = Number(profile.weight) || 0;
+  const weight = metrics.weight || 0;
 
   // Calculate macro grams
   const trainingCarbGrams = quota
@@ -33,6 +33,9 @@ export default function ExportCard({ profile, metrics, plan, platform }: ExportC
   const totalCalories = isNoStrength
     ? (metrics.targetCalories || 0)
     : (metrics.trainingTargetCalories || 0);
+  const maintenanceForTarget = isNoStrength
+    ? (metrics.maintenanceCalories || metrics.restingExpenditure || 0)
+    : (metrics.trainingMaintenanceCalories || metrics.maintenanceCalories || metrics.restingExpenditure || 0);
 
   // Fat = (totalCalories - carbs*4 - protein*4) / 9
   const fatGrams = Math.max(0, Math.round((totalCalories - carbGrams * 4 - proteinGrams * 4) / 9));
@@ -131,7 +134,7 @@ export default function ExportCard({ profile, metrics, plan, platform }: ExportC
         <div className="export-card-goal">
           <p>{metrics.targetWeightText}</p>
           <p className="export-card-deficit">
-            建议每日热量缺口约 {Math.round((metrics.maintenanceCalories || metrics.restingExpenditure || 0) - totalCalories)} kcal
+            建议每日热量缺口约 {Math.round(maintenanceForTarget - totalCalories)} kcal
           </p>
         </div>
       </div>

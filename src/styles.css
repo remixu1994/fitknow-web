@@ -391,8 +391,9 @@ main {
   margin-top: 16px;
 }
 .source-list a {
-  display: grid;
-  gap: 2px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   padding: 10px 0;
   border-bottom: 1px solid var(--line);
 }
@@ -404,6 +405,7 @@ main {
 }
 .source-list b {
   font-size: 14px;
+  white-space: nowrap;
 }
 
 .segmented {
@@ -881,12 +883,28 @@ main {
   min-width: 0;
   cursor: pointer;
   list-style: none;
+  position: relative;
 }
 .meal-card-title::-webkit-details-marker {
   display: none;
 }
 .meal-card[open] .meal-card-title {
   margin-bottom: 12px;
+}
+.meal-card:not([open]) .meal-card-title {
+  align-items: center;
+}
+.meal-card-title::after {
+  content: '⌄';
+  margin-left: auto;
+  color: var(--accent-strong);
+  font-size: 18px;
+  font-weight: 850;
+  line-height: 1;
+  transition: transform .18s ease;
+}
+.meal-card[open] .meal-card-title::after {
+  transform: rotate(180deg);
 }
 .meal-card-title > span {
   width: 28px;
@@ -898,6 +916,19 @@ main {
   color: var(--accent-strong);
   font-weight: 850;
   flex: 0 0 auto;
+}
+.meal-card-state {
+  width: auto !important;
+  height: auto !important;
+  min-width: max-content;
+  padding: 4px 8px;
+  border-radius: 999px !important;
+  background: #f0f8f2 !important;
+  font-size: 12px;
+  line-height: 1.1;
+}
+.meal-card[open] .meal-card-state {
+  background: #e2f0e8 !important;
 }
 .meal-card h4 {
   margin: 0 0 2px;
@@ -1297,12 +1328,29 @@ tr:hover td {
   gap: 10px;
 }
 .qa-item {
-  padding: 13px;
+  overflow: hidden;
 }
 .qa-item summary {
   display: flex;
   gap: 10px;
   align-items: center;
+  padding: 13px;
+  cursor: pointer;
+  list-style: none;
+}
+.qa-item summary::-webkit-details-marker {
+  display: none;
+}
+.qa-item summary::after {
+  content: '⌄';
+  margin-left: auto;
+  color: var(--accent-strong);
+  font-size: 18px;
+  font-weight: 850;
+  transition: transform .18s ease;
+}
+.qa-item[open] summary::after {
+  transform: rotate(180deg);
 }
 .qa-item summary span {
   flex: 0 0 auto;
@@ -1311,6 +1359,25 @@ tr:hover td {
   background: var(--accent-soft);
   color: var(--accent);
   font-size: 12px;
+}
+.qa-item summary b {
+  color: var(--accent-strong);
+  line-height: 1.45;
+}
+.qa-answer {
+  display: grid;
+  gap: 10px;
+  margin: 0 13px 13px;
+  padding: 13px;
+  border: 1px solid #cfe6d4;
+  border-radius: 8px;
+  background: #e9f6dc;
+}
+.qa-answer p {
+  margin: 0;
+  color: #234532;
+  line-height: 1.75;
+  white-space: pre-line;
 }
 
 .result-list {

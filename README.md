@@ -82,7 +82,7 @@ npm run verify:data
 
 ## Development Requirements
 
-- Node.js 18+ or 20+
+- Node.js 20+
 - npm
 - Python 3.10+ available on PATH as `python`, `python3`, or Windows `py`
 - `openpyxl` installed for `npm run extract`

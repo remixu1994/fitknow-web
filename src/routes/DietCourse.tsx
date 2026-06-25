@@ -993,6 +993,7 @@ function MealCard({ table, meal, metrics, defaultOpen = false }) {
           <h4>{meal.name.replace(/^[①②③④⑤]/, '')}</h4>
           <p>{meal.mealTypeLabel} · 碳水 {meal.carbPercent}% · 蛋白质 {meal.proteinPercent}%</p>
         </div>
+        <span className="meal-card-state">{isOpen ? '已展开' : '展开添加'}</span>
       </summary>
       {isOpen && (
         <div className="meal-macro-columns">

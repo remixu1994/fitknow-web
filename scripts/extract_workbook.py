@@ -354,27 +354,40 @@ def parse_qa(ws, category: str) -> list[dict]:
     rows = nonempty_rows(ws, 3)
     items = []
     current = None
+    content_started = False
+
     for item in rows:
-        text = " ".join(v for v in item["values"] if v)
-        if not text or text in {"H H", "R R", "S S"}:
+        values = [v.strip() for v in item["values"] if v]
+        text = " ".join(values)
+        if not text:
             continue
-        match = re.search(r"(\d+)[\.．]\s*([^？?]+[？?]?)", text)
-        is_directory = item["row"] < 23
-        if match and not is_directory:
+
+        is_separator = text in {"H H", "R R", "S S"}
+        if is_separator:
+            if current:
+                items.append(current)
+                current = None
+            content_started = True
+            continue
+        if not content_started:
+            continue
+
+        # Only a row-leading number marker starts a new QA. This avoids treating
+        # answer text such as "0.5-1kg" or "1.5g" as a separate question.
+        match = re.match(r"^\s*(\d+)[.\uff0e]\s*(.+[?\uff1f])\s*$", text)
+        if match:
             if current:
                 items.append(current)
             question = match.group(2).strip()
+            tag_pattern = "\u51cf\u8102|\u589e\u808c|\u6709\u6c27|\u5916\u5356|\u98df\u5802|\u4f53\u91cd|\u4f53\u8102|\u75db\u98ce|\u7cd6\u5c3f\u75c5|\u7ec3\u524d|\u7ec3\u540e"
             current = {
                 "id": f"{category}-{match.group(1)}",
                 "category": category,
                 "question": question,
                 "answer": "",
-                "tags": list({category, *re.findall(r"减脂|增肌|有氧|外卖|食堂|体重|体脂|痛风|糖尿病|练前|练后", question)}),
+                "tags": list({category, *re.findall(tag_pattern, question)}),
                 "sourceRefs": [source_ref(ws, item["row"])],
             }
-            remainder = text[match.end() :].strip()
-            if remainder:
-                current["answer"] += remainder
         elif current:
             current["answer"] += ("\n" if current["answer"] else "") + text
     if current:
@@ -384,20 +397,19 @@ def parse_qa(ws, category: str) -> list[dict]:
         directory = [item for item in rows if 4 <= item["row"] <= 29]
         for item in directory:
             text = " ".join(v for v in item["values"] if v)
-            match = re.search(r"(\d+)[\.．]\s*(.+)", text)
+            match = re.search(r"(\d+)[.\uff0e]\s*(.+)", text)
             if match:
                 items.append(
                     {
                         "id": f"{category}-{match.group(1)}",
                         "category": category,
                         "question": match.group(2),
-                        "answer": "原表中该问题为目录条目，详情请查看原文行。",
+                        "answer": "\u539f\u8868\u4e2d\u8be5\u95ee\u9898\u4e3a\u76ee\u5f55\u6761\u76ee\uff0c\u8be6\u60c5\u8bf7\u67e5\u770b\u539f\u6587\u884c\u3002",
                         "tags": [category],
                         "sourceRefs": [source_ref(ws, item["row"])],
                     }
                 )
     return items
-
 
 def parse_foods(ws) -> list[dict]:
     foods = []
