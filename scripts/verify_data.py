@@ -2,14 +2,52 @@ from __future__ import annotations
 
 import json
 import math
+import struct
 import sys
 from pathlib import Path
 
-from PIL import Image
 
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "src" / "data" / "generated" / "workbook.json"
+
+
+def read_image_size(path: Path) -> tuple[int, int]:
+    data = path.read_bytes()
+
+    if data.startswith(b"\x89PNG\r\n\x1a\n"):
+        width, height = struct.unpack(">II", data[16:24])
+        return width, height
+
+    if data.startswith(b"\xff\xd8"):
+        index = 2
+        while index < len(data):
+            while index < len(data) and data[index] == 0xFF:
+                index += 1
+            if index >= len(data):
+                break
+            marker = data[index]
+            index += 1
+            if marker in {0xD8, 0xD9} or 0xD0 <= marker <= 0xD7:
+                continue
+            if index + 2 > len(data):
+                break
+            segment_length = int.from_bytes(data[index:index + 2], "big")
+            if segment_length < 2:
+                break
+            if marker in {
+                0xC0, 0xC1, 0xC2, 0xC3,
+                0xC5, 0xC6, 0xC7,
+                0xC9, 0xCA, 0xCB,
+                0xCD, 0xCE, 0xCF,
+            }:
+                start = index + 2
+                height = int.from_bytes(data[start + 1:start + 3], "big")
+                width = int.from_bytes(data[start + 3:start + 5], "big")
+                return width, height
+            index += segment_length
+
+    raise ValueError(f"unsupported or invalid image format: {path}")
 
 
 def main() -> None:
@@ -27,9 +65,9 @@ def main() -> None:
         if not path.exists():
             missing.append(ref)
             continue
-        with Image.open(path) as image:
-            if image.width > 0 and image.height > 0:
-                opened += 1
+        width, height = read_image_size(path)
+        if width > 0 and height > 0:
+            opened += 1
 
     one_rm = {row["author"]: row["example"] for row in data["oneRepMax"]}
     fat_loss = [plan for plan in data["dietPlans"] if plan["goal"] == "fat-loss"]

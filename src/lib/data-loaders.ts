@@ -1,4 +1,5 @@
 import type { AppData } from './app-data';
+import type { RouteDataPayload } from '../types';
 
 export type RouteKey =
   | 'dashboard'
@@ -13,7 +14,7 @@ export type RouteKey =
 
 type JsonModule<T = AppData> = { default: T };
 type JsonLoader<T = AppData> = () => Promise<JsonModule<T>>;
-type RouteLoader = (args: { query: string }) => Promise<Record<string, any>>;
+export type RouteLoader = (args: { query: string }) => Promise<RouteDataPayload>;
 
 export const routeFromHash = (): string => (window.location.hash || '#/').replace('#/', '') || 'dashboard';
 
@@ -58,3 +59,21 @@ export const routeLoaders: Record<RouteKey, RouteLoader> = {
   anatomy: () => loadJson(() => import('../data/generated/anatomy.json')),
   source: () => loadJson(() => import('../data/generated/source.json')),
 };
+
+
+export async function loadRouteData(
+  routeKey: RouteKey,
+  query: string,
+  loaders: Partial<Record<RouteKey, RouteLoader>> = routeLoaders,
+): Promise<RouteDataPayload> {
+  const loader = loaders[routeKey] || loaders.dashboard;
+  if (!loader) {
+    return { loadError: new Error(`No data loader configured for route: ${routeKey}`) };
+  }
+
+  try {
+    return await loader({ query });
+  } catch (error) {
+    return { loadError: error instanceof Error ? error : new Error(String(error)) };
+  }
+}
